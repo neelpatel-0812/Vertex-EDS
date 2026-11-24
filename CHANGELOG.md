@@ -8,16 +8,15 @@
 - **Removed** the 0.1 `vertex-tax-estimate` block and its `scripts/vertex-tax/api.js`
   client for an `estimate-tax` action: the cart drop-in's Estimate Shipping prices the
   cart through Vertex already, with no public endpoint. 0.1 was never published.
-- Shared modules under `scripts/vertex-tax/`, the base for the fallback notice:
+- Shared modules under `scripts/vertex-tax/`, used by the fallback notice:
   - `taxes.js` turns the cart drop-in's `appliedTaxes` and the order drop-in's `taxes`
     into one row shape `{ label, amount, rate }`, leaving out zero amounts.
-  - `money.js` formats amounts and rates with `Intl` for the page language.
-  - `config.js` reads `<meta name="vertex-tax-…">` settings with documented defaults.
   - `i18n.js` reads shopper-facing strings from the storefront's placeholders
     (`vertex-tax-*` keys), falling back to English.
 - **Fallback notice:** `scripts/vertex-tax/fallback-notice.js` (`mountFallbackNotice`)
   shows "Tax to be confirmed" with the merchant's message when the Vertex Tax app priced
-  the cart or order with its zero-tax fallback; `fallback.js` holds the detection. Needs
+  the cart or order with its zero-tax fallback; `fallback.js` holds the detection. Host
+  snippets for cart, checkout, order confirmation and the My Account order page. Needs
   the Vertex Tax app version that marks its zero-tax fallback.
 - The installer leaves a blank line after its header, so copied files that open with a
   comment pass the storefront's stylelint.

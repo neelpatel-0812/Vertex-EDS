@@ -29,7 +29,7 @@ afterEach(() => {
 
 test('ships the shared modules', () => {
   assert.deepEqual(listAssets().sort(), [
-    ...['config', 'fallback', 'fallback-notice', 'i18n', 'money', 'taxes']
+    ...['fallback', 'fallback-notice', 'i18n', 'taxes']
       .map((name) => path.join('scripts', 'vertex-tax', `${name}.js`)),
     path.join('scripts', 'vertex-tax', 'fallback-notice.css'),
   ].sort());

@@ -28,11 +28,13 @@ npm install --foreground-scripts @magnetoitsolutionsllc/eds-vertex-tax
 
 It copies files into `scripts/vertex-tax/`.
 
-Add the notice to three blocks (copy from README › Fallback notice):
+Add the notice to four blocks (copy from README › Fallback notice):
 
 - `blocks/commerce-cart/commerce-cart.js`
 - `blocks/commerce-checkout/commerce-checkout.js`
 - `blocks/commerce-checkout-success/commerce-checkout-success.js` (with `{ source: 'order' }`)
+- `blocks/commerce-order-cost-summary/commerce-order-cost-summary.js` (My Account order
+  page, with `{ source: 'order' }`)
 
 ## 3. Check locally
 
@@ -48,7 +50,7 @@ Quotation and Invoice.
 ## 4. Make it live
 
 ```sh
-git add scripts/vertex-tax blocks/commerce-cart blocks/commerce-checkout blocks/commerce-checkout-success
+git add scripts/vertex-tax blocks/commerce-cart blocks/commerce-checkout blocks/commerce-checkout-success blocks/commerce-order-cost-summary
 git commit -m "Add Vertex tax display"
 git push
 ```

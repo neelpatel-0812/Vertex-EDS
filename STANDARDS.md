@@ -55,9 +55,10 @@ what checkout charges and what is filed with Vertex.
 
 ## 4. Configuration
 
-- **Storefront-wide settings** come from `<meta>` tags in `head.html`, named
-  `vertex-tax-<setting>`. Read them only through `scripts/vertex-tax/config.js`, which
-  supplies the default.
+- **Storefront-wide settings**, when a feature needs one, come from `<meta>` tags in
+  `head.html`, named `vertex-tax-<setting>`, read through one module that supplies the
+  default. (0.2.0 has none: a setting is added with the feature that reads it, never
+  ahead of it.)
 - **Per-block settings** come from the block table (`readBlockConfig`), with documented
   defaults in the block's README section.
 - A missing or invalid setting degrades to the documented default, or the feature hides

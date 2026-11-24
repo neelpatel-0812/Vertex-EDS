@@ -70,15 +70,6 @@ install a file is replaced only if that hash still matches, meaning nobody edite
 the storefront. Edited files are skipped with a warning. Make the change in this package
 and publish a new version, or run `npx eds-vertex-tax --force` to overwrite the edits.
 
-## Configuration
-
-Settings are `<meta>` tags in the storefront's `head.html`. All are optional.
-
-| Tag | Default | Purpose |
-| --- | --- | --- |
-| `vertex-tax-breakdown` | `true` | Show each Vertex tax rather than one total where the package renders tax. |
-| `vertex-tax-show-rates` | `true` | Add the rate to a tax's name when it is known: "CGST (9%)". |
-
 ## Translations
 
 Shopper-facing text comes from the storefront's placeholders, keys `vertex-tax-*`. Add
@@ -103,8 +94,24 @@ const $vertexTaxNotice = document.createElement('div');
 $summary.before($vertexTaxNotice); // the element the OrderSummary renders into
 mountFallbackNotice($vertexTaxNotice);
 
-// Order confirmation (blocks/commerce-checkout-success) and account order pages:
+// Order confirmation (blocks/commerce-checkout-success), before $orderCostSummary:
 mountFallbackNotice($vertexTaxNotice, { source: 'order' });
+```
+
+On the **My Account order page** (and the guest order-status page), the order's totals
+come from the **Commerce Order Cost Summary** block. In
+`blocks/commerce-order-cost-summary/commerce-order-cost-summary.js`:
+
+```js
+import { mountFallbackNotice } from '../../scripts/vertex-tax/fallback-notice.js';
+
+export default async function decorate(block) {
+  const $vertexTaxNotice = document.createElement('div');
+  block.before($vertexTaxNotice);
+  mountFallbackNotice($vertexTaxNotice, { source: 'order' });
+
+  await orderRenderer.render(OrderCostSummary, {})(block);
+}
 ```
 
 The notice stays hidden until a fallback happens, and loads its own CSS

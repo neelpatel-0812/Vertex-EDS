@@ -62,9 +62,7 @@ storefront, so a shopper sees no tax or Commerce's tax with nothing saying why.
 
 ```
 assets/scripts/vertex-tax/
-  config.js     <meta name="vertex-tax-…"> settings with defaults
   i18n.js       strings from the storefront's placeholders (vertex-tax-*), English defaults
-  money.js      Intl formatting for amounts and rates
   taxes.js      cart and order tax data -> rows { label, amount, rate }   (pure)
   fallback.js         detects the fallback mark on cart and order data       (pure)
   fallback-notice.js  mountFallbackNotice(): shows/hides the notice             (DOM)

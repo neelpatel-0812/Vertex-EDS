@@ -7,7 +7,6 @@ import { fetchPlaceholders } from '../commerce.js';
  * section 5). `{name}` marks a value filled in at runtime.
  */
 export const DEFAULTS = {
-  'vertex-tax-label-tax': 'Tax',
   'vertex-tax-fallback-title': 'Tax to be confirmed',
   'vertex-tax-fallback-notice': 'We could not calculate tax right now. {message}',
 };
