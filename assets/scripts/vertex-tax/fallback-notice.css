@@ -1,0 +1,19 @@
+/* The notice mountFallbackNotice() shows while tax could not be calculated. Uses the
+   storefront's design tokens where they exist; the fallbacks match the boilerplate. */
+.vertex-tax-fallback {
+  display: grid;
+  gap: var(--spacing-xsmall, 4px);
+  margin: var(--spacing-small, 8px) 0;
+  padding: var(--spacing-small, 8px) var(--spacing-medium, 16px);
+  border: var(--shape-border-width-1, 1px) solid var(--color-warning-500, #b86e00);
+  border-radius: var(--shape-border-radius-1, 3px);
+  background: var(--color-warning-200, #fff7e5);
+}
+
+.vertex-tax-fallback[hidden] {
+  display: none;
+}
+
+.vertex-tax-fallback-body {
+  margin: 0;
+}

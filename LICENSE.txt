@@ -1,0 +1,5 @@
+TODO: license not decided yet.
+
+Confirm with the project lead whether this package ships under the Magneto IT Solutions
+LLC EULA (as @magnetoitsolutionsllc/eds-pinterest-tracking does) or under different
+terms, and replace this file before the first publish.

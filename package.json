@@ -1,0 +1,40 @@
+{
+  "name": "@magnetoitsolutionsllc/eds-vertex-tax",
+  "version": "0.2.0",
+  "description": "Vertex tax display for Adobe Commerce storefronts on Edge Delivery Services",
+  "bin": {
+    "eds-vertex-tax": "scripts/install.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "lint": "eslint .",
+    "test": "node --test \"test/**/*.test.js\"",
+    "prepublishOnly": "npm run lint && npm test"
+  },
+  "files": [
+    "assets",
+    "scripts",
+    "CHANGELOG.md",
+    "README.md",
+    "LICENSE.txt"
+  ],
+  "keywords": [
+    "vertex",
+    "tax",
+    "eds",
+    "edge-delivery",
+    "adobe-commerce",
+    "magnetoitsolutions"
+  ],
+  "author": "Magneto IT Solutions LLC (https://magnetoitsolutions.com/)",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@babel/eslint-parser": "7.29.7",
+    "eslint": "8.57.1",
+    "eslint-config-airbnb-base": "15.0.0",
+    "eslint-plugin-import": "2.32.0"
+  }
+}

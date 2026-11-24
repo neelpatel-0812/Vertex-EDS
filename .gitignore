@@ -1,0 +1,9 @@
+node_modules/
+*.tgz
+
+# Never commit registry credentials
+.npmrc
+npm-debug.log*
+.DS_Store
+.idea/
+.vscode/
