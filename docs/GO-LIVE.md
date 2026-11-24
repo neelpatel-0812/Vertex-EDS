@@ -26,8 +26,7 @@ In the storefront repository:
 npm install --foreground-scripts @magnetoitsolutionsllc/eds-vertex-tax
 ```
 
-(Needs the registry line in `.npmrc`, see README › Install.) It copies files into
-`scripts/vertex-tax/`.
+It copies files into `scripts/vertex-tax/`.
 
 Add the notice to three blocks (copy from README › Fallback notice):
 
@@ -55,7 +54,6 @@ git push
 ```
 
 Edge Delivery publishes code from git: once the branch is merged to `main`, it is live.
-Never commit `.npmrc`.
 
 ## Updating later
 

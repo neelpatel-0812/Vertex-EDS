@@ -113,7 +113,9 @@ package. The package never edits host files.
   changed, and anything they must do.
 - The installer's header hash means storefront edits to copied files are never
   overwritten silently; keep that behaviour.
-- Published to the private registry only; `.npmrc` and tokens never enter git.
+- Published to the public npm registry under `@magnetoitsolutionsllc`, under the
+  Magneto IT Solutions EULA (LICENSE.txt), as eds-pinterest-tracking is. npm tokens never
+  enter git.
 
 ## 10. Writing
 

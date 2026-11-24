@@ -80,8 +80,7 @@ storefront, not in this repository).
 Start with `npx @adobe/aem-cli up` (http://localhost:3000). Page content comes from the
 boilerplate's demo site; only the config is local.
 
-## Open items
+## Distribution
 
-- Licence (LICENSE.txt is still a placeholder): Magneto IT Solutions EULA like
-  eds-pinterest-tracking, or other terms. Needed before the first publish.
-- GitLab repository and private registry: not created yet.
+Public npm registry under `@magnetoitsolutionsllc`, Magneto IT Solutions EULA, public
+GitHub repository (neelpatel-0812/Vertex-EDS), as eds-pinterest-tracking is.

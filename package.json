@@ -28,6 +28,14 @@
   ],
   "author": "Magneto IT Solutions LLC (https://magnetoitsolutions.com/)",
   "license": "SEE LICENSE IN LICENSE.txt",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neelpatel-0812/Vertex-EDS.git"
+  },
   "engines": {
     "node": ">=18"
   },

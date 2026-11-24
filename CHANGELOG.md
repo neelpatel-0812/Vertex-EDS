@@ -21,6 +21,8 @@
   the Vertex Tax app version that marks its zero-tax fallback.
 - The installer leaves a blank line after its header, so copied files that open with a
   comment pass the storefront's stylelint.
+- Licensed under the Magneto IT Solutions LLC EULA (LICENSE.txt), published to the public
+  npm registry like eds-pinterest-tracking.
 - `npm test` runs on Node 24 (`node --test` no longer accepts a folder).
 - STANDARDS.md and docs/DESIGN.md added.
 

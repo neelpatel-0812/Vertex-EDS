@@ -47,15 +47,7 @@ needs its state to tell whether a sale stays within one state.
 
 ## Install
 
-The package is distributed through a private registry. Add an `.npmrc` to the
-storefront, and add `.npmrc` to its `.gitignore` so it never reaches git:
-
-```
-@magnetoitsolutionsllc:registry=<private registry URL>
-//<private registry host>/:_authToken=<TOKEN>
-```
-
-Then, from the storefront root:
+The package is on the public npm registry. From the storefront root:
 
 ```sh
 npm install --foreground-scripts @magnetoitsolutionsllc/eds-vertex-tax
@@ -146,4 +138,5 @@ Vertex Dev store.
 
 ## License
 
-See [LICENSE.txt](LICENSE.txt).
+Licensed under the Magneto IT Solutions LLC End-User License Agreement. See
+[LICENSE.txt](LICENSE.txt).
