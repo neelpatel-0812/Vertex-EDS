@@ -1,0 +1,207 @@
+import { events } from '@dropins/tools/event-bus.js';
+import { loadCSS } from '../aem.js';
+import { breakdownRows } from './breakdown.js';
+import { readSetting } from './config.js';
+import { cartNeedsCheck, noticeText, orderNeedsCheck } from './fallback.js';
+import { loadStrings } from './i18n.js';
+import { createStatusClient } from './status.js';
+import { cartTaxRows, orderTaxRows } from './taxes.js';
+
+/*
+ * Vertex tax on any aem-boilerplate-commerce storefront, with no block edits.
+ *
+ * Loaded once per page from head.html (the installer adds the tag). It watches the
+ * drop-ins' data events and finds their order summaries on the page by the drop-ins'
+ * own class names, then:
+ *
+ *   - lists each tax (CGST, SGST, State, …) under the Tax line, styled with the
+ *     drop-in's own row classes, when the summary shows a single Tax line. When
+ *     Commerce's "Display Full Tax Summary" is on, the drop-in lists them itself and
+ *     nothing is added;
+ *   - shows "Tax to be confirmed" above the summary when the Vertex Tax app says the
+ *     cart or order was priced by the merchant's fallback (status.js).
+ *
+ * The drop-ins re-render their summaries, which removes anything added inside them, so
+ * a MutationObserver puts it back. Every step is idempotent: a pass that finds nothing
+ * to change changes nothing, so it settles. Nothing here may break the page
+ * (STANDARDS.md, section 6): every pass is wrapped, and a failure only hides our output.
+ */
+
+/** The drop-ins' markup this relies on (cart drop-in for cart and checkout, order drop-in). */
+const SURFACES = [
+  {
+    source: 'cart',
+    summary: '.cart-order-summary',
+    fullTaxes: '.cart-order-summary__taxes',
+    taxLine: '[data-testid="tax-total-only"]',
+    row: (label, price) => {
+      const entry = el('div', 'cart-order-summary__entry cart-order-summary__taxEntry');
+      entry.append(
+        el('span', 'cart-order-summary__label cart-order-summary__label--muted', label),
+        el('span', 'cart-order-summary__price cart-order-summary__price--muted', price),
+      );
+      return entry;
+    },
+  },
+  {
+    source: 'order',
+    summary: '.order-cost-summary',
+    fullTaxes: '.order-cost-summary-content__accordion',
+    taxLine: '.order-cost-summary-content__description--tax',
+    row: (label, price) => {
+      const entry = el('div', 'order-cost-summary-content__accordion-row');
+      entry.append(el('p', '', label), el('p', '', price));
+      return entry;
+    },
+  },
+];
+
+const NO = { fallback: false };
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function start() {
+  if (window.vertexTaxStarted) return;
+  window.vertexTaxStarted = true;
+
+  loadCSS(`${window.hlx?.codeBasePath ?? ''}/scripts/vertex-tax/vertex-tax.css`);
+
+  const settings = {
+    breakdown: readSetting('breakdown'),
+    showRates: readSetting('showRates'),
+    statusUrl: readSetting('statusUrl'),
+  };
+  const status = createStatusClient({ url: settings.statusUrl });
+  const state = {
+    cart: null, order: null, cartStatus: NO, orderStatus: NO, t: null,
+  };
+
+  let scheduled = false;
+  const schedule = () => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      // eslint-disable-next-line no-use-before-define
+      sync();
+    });
+  };
+
+  function syncNotice(surface, summary) {
+    const statusNow = surface.source === 'cart' ? state.cartStatus : state.orderStatus;
+    let notice = summary.previousElementSibling;
+    if (!notice?.hasAttribute('data-vertex-tax-notice')) {
+      if (!statusNow.fallback) return;
+      notice = el('div', 'vertex-tax-fallback');
+      notice.setAttribute('data-vertex-tax-notice', '');
+      notice.setAttribute('role', 'status');
+      notice.append(
+        el('strong', 'vertex-tax-fallback-title'),
+        el('p', 'vertex-tax-fallback-body'),
+      );
+      summary.before(notice);
+    }
+    if (!statusNow.fallback || !state.t) {
+      notice.hidden = true;
+      return;
+    }
+    const text = noticeText(statusNow, state.t);
+    const [title, body] = notice.children;
+    if (title.textContent !== text.title) title.textContent = text.title;
+    if (body.textContent !== text.body) body.textContent = text.body;
+    notice.hidden = false;
+  }
+
+  function syncBreakdown(surface, summary) {
+    const existing = summary.querySelector('[data-vertex-tax-breakdown]');
+    const taxLine = summary.querySelector(surface.taxLine);
+    const data = surface.source === 'cart' ? state.cart : state.order;
+    const rows = settings.breakdown && taxLine && !summary.querySelector(surface.fullTaxes)
+      ? breakdownRows(
+        surface.source === 'cart' ? cartTaxRows(data) : orderTaxRows(data),
+        { showRates: settings.showRates },
+      )
+      : [];
+
+    if (rows.length === 0) {
+      existing?.remove();
+      return;
+    }
+    const signature = JSON.stringify(rows);
+    const inPlace = existing?.previousElementSibling === taxLine;
+    if (inPlace && existing.dataset.vertexTaxBreakdown === signature) return;
+    existing?.remove();
+    const list = el('div', 'vertex-tax-breakdown');
+    list.dataset.vertexTaxBreakdown = signature;
+    rows.forEach((row) => list.append(surface.row(row.label, row.price)));
+    taxLine.after(list);
+  }
+
+  function sync() {
+    SURFACES.forEach((surface) => {
+      document.querySelectorAll(surface.summary).forEach((summary) => {
+        try {
+          syncNotice(surface, summary);
+          syncBreakdown(surface, summary);
+        } catch (error) {
+          console.warn('[vertex-tax] could not update the tax summary', error);
+        }
+      });
+    });
+  }
+
+  const onCart = (cart) => {
+    state.cart = cart ?? null;
+    if (cartNeedsCheck(cart)) {
+      status({ cart: cart.id }).then((answer) => {
+        if (state.cart === cart) {
+          state.cartStatus = answer;
+          schedule();
+        }
+      });
+    } else {
+      state.cartStatus = NO;
+    }
+    schedule();
+  };
+
+  const onOrder = (order) => {
+    state.order = order ?? null;
+    if (orderNeedsCheck(order)) {
+      status({ order: order.number }).then((answer) => {
+        if (state.order === order) {
+          state.orderStatus = answer;
+          schedule();
+        }
+      });
+    } else {
+      state.orderStatus = NO;
+    }
+    schedule();
+  };
+
+  loadStrings().then((t) => {
+    state.t = t;
+    schedule();
+  });
+  events.on('cart/data', onCart, { eager: true });
+  events.on('order/data', onOrder, { eager: true });
+  events.on('order/placed', onOrder, { eager: true });
+  new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+  schedule();
+}
+
+try {
+  if (document.body) {
+    start();
+  } else {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  }
+} catch (error) {
+  console.warn('[vertex-tax] could not start', error);
+}

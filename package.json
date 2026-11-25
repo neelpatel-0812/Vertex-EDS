@@ -1,9 +1,19 @@
 {
   "name": "@magnetoitsolutionsllc/eds-vertex-tax",
   "version": "0.2.0",
-  "description": "Setup guide for showing Vertex tax on Adobe Commerce storefronts built on Edge Delivery Services",
+  "description": "Vertex tax display for Adobe Commerce storefronts on Edge Delivery Services",
+  "bin": {
+    "eds-vertex-tax": "scripts/install.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "lint": "eslint .",
+    "test": "node --test \"test/**/*.test.js\"",
+    "prepublishOnly": "npm run lint && npm test"
+  },
   "files": [
-    "docs",
+    "assets",
+    "scripts",
     "CHANGELOG.md",
     "README.md",
     "LICENSE.txt"
@@ -25,5 +35,14 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/neelpatel-0812/Vertex-EDS.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@babel/eslint-parser": "7.29.7",
+    "eslint": "8.57.1",
+    "eslint-config-airbnb-base": "15.0.0",
+    "eslint-plugin-import": "2.32.0"
   }
 }

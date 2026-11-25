@@ -3,11 +3,6 @@
 How code in this package is written, organised, tested and released. Every change follows
 these; a reviewer can point at a section instead of re-arguing it.
 
-> **0.2.0 ships no code.** The storefront display is Adobe's drop-ins, switched on by
-> configuration (README). These standards apply when a feature brings code back: restore
-> the installer, lint and test setup from git history (commit b32ecb1, the last with code)
-> rather than starting over.
-
 ## 1. What the package is
 
 A set of files copied into an **aem-boilerplate-commerce** storefront (Edge Delivery
@@ -96,10 +91,18 @@ what checkout charges and what is filed with Vertex.
 
 ## 7. Integrating with the host storefront
 
-The installer only copies files. Where a feature needs the host to call it (for example
-passing `updateLineItems` to the cart `OrderSummary`), the README documents the exact,
-minimal edit as a copy-paste snippet, and the change stays a single call into this
-package. The package never edits host files.
+The package must work in any aem-boilerplate-commerce storefront with no block edits:
+
+- **One entry point.** `scripts/vertex-tax/vertex-tax.js`, loaded from `head.html`. The
+  installer adds that one script tag, only when it is missing, and changes nothing else
+  in the host. No other host file is ever edited.
+- **Attach through the drop-ins' public surface.** Their events (`cart/data`,
+  `order/data`, `order/placed`) for data, and their documented container class names
+  for where to put output. Anything added inside a drop-in's markup must survive its
+  re-render (re-apply on change) and must never be duplicated.
+- **Configuration is `<meta>` tags** (section 4); the README lists them.
+- A drop-in change that moves a class name breaks only our output, never the page:
+  the package then shows nothing and warns `[vertex-tax]`.
 
 ## 8. Tests and checks
 

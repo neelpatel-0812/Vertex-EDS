@@ -41,22 +41,48 @@ Two fixes made on the app side during this work, which the storefront shows as-i
 The three switches above, exactly where they are and what each shows, plus how to check
 them. Every storefront needs them, and nothing else tells a merchant they exist.
 
-### 2. Fallback notice (dropped)
+### 2. Fallback notice
 
-The idea: in the "zero" fallback the app adds one zero-amount tax titled "Tax to be
-confirmed: <message>", and the storefront shows it as a notice. Built and unit-tested,
-then tested on Dev on 2026-11-25: Commerce drops a tax line whose amount is zero, so the
-cart's `appliedTaxes` came back empty and there was nothing to show. The code was removed
-from the app and the package.
+In the "zero" fallback the shopper would see $0.00 tax with nothing saying why. The
+first design had the app add a zero-amount "Tax to be confirmed" tax line for the
+storefront to find; tested on Dev on 2026-11-25, Commerce drops a tax line whose amount
+is zero, so the cart's `appliedTaxes` came back empty.
 
-If a notice is wanted later, the storefront has to ask the app: the app already records,
-per cart, that it was priced by the fallback (quotation-cache.ts, `QuoteFallback`). A
-small read-only web action looked up by the storefront's cart id would answer it. Not
-built: it adds a public endpoint, and "Block checkout" already tells the shopper.
+So the storefront asks the app. collect-taxes already records, per cart, that it was
+priced by the fallback (with the merchant's message), and order-placed records the
+order. The app's public `tax-status` action answers `{ fallback, message? }` for a
+storefront cart id (resolved to Commerce's cart id through Commerce, cached by hash) or
+an order number. The package asks only when a cart or order shows zero tax, caches the
+answer for 30 seconds, and treats any failure as "no notice".
+
+### 3. Tax breakdown
+
+The drop-ins list each tax only when Commerce's *Display Full Tax Summary* is on. The
+package lists them under the Tax line whatever that setting is, using the drop-ins' own
+row classes so it looks the same, and adds nothing when the drop-in's list is there.
+
+### 4. No block edits
+
+`vertex-tax.js` is loaded from `head.html` (the installer adds the tag) and finds the
+summaries by the drop-ins' class names (`.cart-order-summary`,
+`.order-cost-summary`), re-applying its output when they re-render (MutationObserver,
+idempotent passes). A storefront needs no code of its own beyond the install.
 
 ## Package contents
 
-Documentation only: README (setup), docs/GO-LIVE.md, this design, STANDARDS.md.
+```
+assets/scripts/vertex-tax/
+  vertex-tax.js  the entry point: events, summaries, notice and breakdown (DOM)
+  vertex-tax.css
+  config.js      <meta name="vertex-tax-…"> settings with defaults
+  status.js      asks the app's tax-status action                     (no DOM)
+  fallback.js    when to ask, and the notice text                       (pure)
+  breakdown.js   tax rows with formatted amounts                        (pure)
+  taxes.js       cart and order tax data -> rows { label, amount, rate } (pure)
+  money.js       Intl formatting for amounts and rates
+  i18n.js        strings from the storefront's placeholders (vertex-tax-*)
+scripts/install.js   copies assets/ into the storefront, adds the head.html tag
+```
 
 ## Test storefront
 

@@ -1,65 +1,134 @@
 # @magnetoitsolutionsllc/eds-vertex-tax
 
-Vertex tax on Adobe Commerce storefronts built on Edge Delivery Services
+Vertex tax on any Adobe Commerce storefront built on Edge Delivery Services
 (aem-boilerplate-commerce with drop-ins 3.x).
 
 Tax on the storefront comes from Commerce, which gets it from the Vertex Tax App Builder
-app's `collect_taxes` webhook. So the storefront always shows what checkout charges and
-what is filed with Vertex. The display is built into Adobe's drop-ins and only needs
-switching on; this package is the guide to doing that. It installs no code into the
-storefront.
+app's `collect_taxes` webhook, so the storefront always shows what checkout charges and
+what is filed with Vertex. This package adds, on the cart, checkout, order confirmation
+and account order pages:
 
-**Quick start:** [docs/GO-LIVE.md](docs/GO-LIVE.md) is the short checklist to go live.
+- **Tax breakdown:** each tax by name under the Tax line (for example CGST and SGST, or
+  State and County tax), with its amount, styled like the drop-ins' own summary.
+- **"Tax to be confirmed" notice:** when Vertex could not be reached and the merchant's
+  fallback priced the cart at zero tax, a notice above the summary says so, with the
+  merchant's message, instead of a silent $0.00.
+
+Install it once; no block needs editing.
+
+**Quick start:** [docs/GO-LIVE.md](docs/GO-LIVE.md) is the short checklist.
 
 ## Requirements
 
 - A storefront based on
   [aem-boilerplate-commerce](https://github.com/hlxsites/aem-boilerplate-commerce)
-  with drop-ins 3.x.
+  with drop-ins 3.x (the installer looks for `scripts/initializers/index.js`).
 - The Vertex Tax app installed and connected in the Commerce instance, with the Vertex
   tax integration active.
 
-## Storefront setup
+## Install
 
-Three switches turn on Vertex tax display. None needs code.
+From the storefront root:
 
-| What the shopper sees | Where to switch it on |
-| --- | --- |
-| **Estimated tax on the cart page**, from a country, state and postcode, before checkout | The cart page's **Commerce Cart** block: set **Enable Estimate Shipping** to `true`. |
-| **Each tax by name in the cart and checkout summary** (for example CGST and SGST, or State and County tax) instead of one "Tax" line | Commerce Admin › **Stores › Configuration › Sales › Tax › Shopping Cart Display Settings › Display Full Tax Summary** = **Yes** |
-| **Each tax by name on the order confirmation and in My Account** | Commerce Admin › **Stores › Configuration › Sales › Tax › Orders, Invoices, Credit Memos Display Settings › Display Full Tax Summary** = **Yes** |
+```sh
+npm install --foreground-scripts @magnetoitsolutionsllc/eds-vertex-tax
+```
 
-For the two Commerce settings, untick *Use system value*, choose **Yes** and save. They
-can take a few minutes to reach the storefront.
+The install:
 
-### Checking it
+1. copies the package's files into `scripts/vertex-tax/`;
+2. adds one line to `head.html`, which loads it on every page:
+   `<script type="module" src="/scripts/vertex-tax/vertex-tax.js"></script>`.
 
-1. Add a product to the cart, open the cart page, and use **Estimate Shipping** with a
-   country, state and postcode: the summary shows the estimated tax.
-2. Go to checkout and enter a full address: the summary lists each tax by name.
-3. Place a test order: the confirmation page's **Tax** section lists the same taxes.
+Then add the Vertex Tax app's address to `head.html` (see Configuration), and **commit
+`scripts/vertex-tax/` and `head.html`**: Edge Delivery serves code from git, and
+`node_modules` does not exist at runtime.
 
-In the Vertex Tax app's **Vertex Report**, each step shows as a Quotation (and the order
-as an Invoice) with the address that was priced.
+If `postinstall` did not run (for example `npm ci --ignore-scripts` in CI), run
+`npx eds-vertex-tax` from the storefront root.
 
-If the tax names look wrong (for example IGST where CGST and SGST are expected), check
-the ship-from address under **Vertex Tax › Settings › Company & Ship-From**: Vertex
-needs its state to tell whether a sale stays within one state.
+### Updates and local edits
 
-## When Vertex cannot be reached
+Every copied file starts with a header holding a hash of its content. On the next
+install a file is replaced only if that hash still matches, meaning nobody edited it in
+the storefront. Edited files are skipped with a warning. Make the change in this package
+and publish a new version, or run `npx eds-vertex-tax --force` to overwrite the edits.
+The `head.html` line is added only when it is not there already.
+
+## Configuration
+
+Settings are `<meta>` tags in the storefront's `head.html`.
+
+| Tag | Default | Purpose |
+| --- | --- | --- |
+| `vertex-tax-status-url` | none | The Vertex Tax app's `tax-status` action. **Needed for the notice**; without it the notice is off and the breakdown still works. |
+| `vertex-tax-breakdown` | `true` | List each tax under the Tax line. |
+| `vertex-tax-show-rates` | `true` | Add the rate to a tax's name where Commerce knows it (order pages): "IGST (18%)". |
+
+The status address is the app's web action URL, which `aio app get-url` prints after a
+deploy, for example:
+
+```html
+<meta name="vertex-tax-status-url" content="https://<namespace>.adobeioruntime.net/api/v1/web/vertex/tax-status">
+```
+
+## What the shopper sees
+
+### Tax breakdown
+
+Under the summary's Tax line, each tax by name with its amount. Commerce's *Display Full
+Tax Summary* setting does the same inside the drop-ins; when it is on, the package sees
+the drop-in's own list and adds nothing, so a tax is never listed twice.
+
+### When Vertex cannot be reached
 
 The Vertex Tax app applies the merchant's fallback (*Vertex Tax › Settings › Tax
-Behaviour › When Vertex is unavailable*). What the shopper sees:
+Behaviour › When Vertex is unavailable*):
 
 | Fallback | Storefront |
 | --- | --- |
-| **Block checkout** | The merchant's message, as the cart or checkout error. Nothing is ordered untaxed. |
-| **Charge zero tax and flag the order** | Tax shows as $0.00, with no explanation. The order is flagged on the Vertex Report for the merchant to review. |
-| **Leave the totals as they are** | No Vertex tax, with no explanation. |
+| **Block checkout** | The merchant's message, as the cart or checkout error. |
+| **Charge zero tax and flag the order** | Tax shows as $0.00, with the **"Tax to be confirmed"** notice above the summary: the merchant's message, or "Tax could not be calculated, so it is not included in this total. The store will confirm it with you." |
+| **Leave the totals as they are** | No Vertex tax, with the same notice. |
 
-There is no storefront notice for "zero tax". It was built and tested, but Commerce drops
-a tax line whose amount is zero, so nothing reaches the storefront to show. Merchants who
-need the shopper told should use **Block checkout**.
+How it knows: Commerce keeps nothing on the cart that says tax was not calculated, so
+when a cart or order shows zero tax the package asks the app's `tax-status` action, which
+keeps that record. Taxed carts are never asked about; answers are cached for 30 seconds;
+a slow or failed answer simply shows no notice.
+
+## Translations
+
+Shopper-facing text comes from the storefront's placeholders, keys `vertex-tax-*`. Add
+a key to translate it; anything not translated falls back to English. The keys and
+their English text are in `scripts/vertex-tax/i18n.js` (`DEFAULTS`). Tax names come from
+Commerce as they are.
+
+## How it attaches
+
+`vertex-tax.js` listens to the drop-ins' `cart/data`, `order/data` and `order/placed`
+events, and finds the order summaries on the page by the drop-ins' class names
+(`.cart-order-summary`, `.order-cost-summary`). The drop-ins re-render their summaries,
+so it re-applies its output when they do. Any failure hides the package's output and
+logs a `[vertex-tax]` warning; it never breaks the page.
+
+## Development
+
+See [STANDARDS.md](STANDARDS.md) for how code here is written and released.
+
+```sh
+npm install
+npm run lint
+npm test
+```
+
+To try it in a storefront, pack it and install the tarball there:
+
+```sh
+npm pack
+cd <storefront>
+npm install <path>/magnetoitsolutionsllc-eds-vertex-tax-0.2.0.tgz --foreground-scripts
+npx @adobe/aem-cli up
+```
 
 ## License
 

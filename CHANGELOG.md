@@ -2,18 +2,24 @@
 
 ## 0.2.0 – in progress
 
-- **The package is now a setup guide and ships no code.** Cart estimate, tax by name in
-  cart and checkout, and tax on order pages are Adobe's own drop-in features, switched on
-  by the settings in the README (Storefront setup). Verified against the Vertex Dev store.
+- **Works in any aem-boilerplate-commerce storefront with no block edits.** The
+  installer copies the files and adds one script tag to `head.html`;
+  `scripts/vertex-tax/vertex-tax.js` attaches to the drop-ins' order summaries by itself.
+- **Tax breakdown:** each tax by name with its amount under the Tax line on cart,
+  checkout, order confirmation and account order pages, styled with the drop-ins' own
+  row classes. Skipped where Commerce's *Display Full Tax Summary* already lists them.
+- **"Tax to be confirmed" notice** above the summary when the cart or order was priced
+  by the merchant's fallback. The package asks the Vertex Tax app's new `tax-status`
+  action (`<meta name="vertex-tax-status-url">`), because Commerce drops the
+  zero-amount mark the 0.2 drafts relied on. Shows the merchant's message, or a
+  translatable default.
+- Settings: `vertex-tax-status-url`, `vertex-tax-breakdown`, `vertex-tax-show-rates`.
 - **Removed** the 0.1 `vertex-tax-estimate` block and its `estimate-tax` client: the cart
-  drop-in's Estimate Shipping prices the cart through Vertex already, with no public
-  endpoint. 0.1 was never published.
-- **Removed** the "Tax to be confirmed" fallback notice, its shared modules and the
-  installer. Commerce drops a zero-amount tax line, so the Vertex Tax app's mark never
-  reached the storefront (tested on Dev, 2026-11-25). The README says what a shopper sees
-  under each fallback instead.
-- Licensed under the Magneto IT Solutions LLC EULA (LICENSE.txt).
-- STANDARDS.md, docs/DESIGN.md and docs/GO-LIVE.md added.
+  drop-in's Estimate Shipping prices the cart through Vertex already. 0.1 was never
+  published.
+- Licensed under the Magneto IT Solutions LLC EULA (LICENSE.txt), published to the public
+  npm registry like eds-pinterest-tracking.
+- Needs the Vertex Tax app 0.9.3 or later (the `tax-status` action).
 
 ## 0.1.0 – unreleased
 
