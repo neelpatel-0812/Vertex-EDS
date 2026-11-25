@@ -29,3 +29,37 @@
 .vertex-tax-breakdown .order-cost-summary-content__accordion-row p {
   margin: 0;
 }
+
+/* The Tax line as the breakdown's accordion header: a chevron after its label, turned
+   up while open. Same look as the drop-ins' own accordions. */
+.vertex-tax-toggle {
+  cursor: pointer;
+}
+
+.vertex-tax-toggle:focus-visible {
+  outline: 2px solid var(--color-brand-500, #454545);
+  outline-offset: 2px;
+}
+
+.vertex-tax-toggle > .cart-order-summary__label::after,
+.vertex-tax-toggle .order-cost-summary-content__description--header > span:first-child::after {
+  content: "";
+  display: inline-block;
+  width: 0.45em;
+  height: 0.45em;
+  margin-left: var(--spacing-xsmall, 8px);
+  border-right: 2px solid currentcolor;
+  border-bottom: 2px solid currentcolor;
+  transform: translateY(-0.2em) rotate(45deg);
+  transition: transform 0.2s;
+}
+
+.vertex-tax-toggle[aria-expanded="true"] > .cart-order-summary__label::after,
+.vertex-tax-toggle[aria-expanded="true"]
+  .order-cost-summary-content__description--header > span:first-child::after {
+  transform: translateY(0.05em) rotate(-135deg);
+}
+
+.vertex-tax-breakdown[hidden] {
+  display: none;
+}

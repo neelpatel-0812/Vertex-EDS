@@ -80,6 +80,11 @@ function start() {
   const state = {
     cart: null, order: null, cartStatus: NO, orderStatus: NO, t: null,
   };
+  // Whether each breakdown is open. Kept here, not on the element: the drop-ins
+  // re-render the summary, and the shopper's choice must survive that.
+  const open = { cart: false, order: false };
+  // Tax lines already listening for clicks, so a re-applied pass adds no second handler.
+  const toggles = new WeakSet();
 
   let scheduled = false;
   const schedule = () => {
@@ -117,6 +122,41 @@ function start() {
     notice.hidden = false;
   }
 
+  /**
+   * The drop-in's Tax line, made the accordion's header: a button with a chevron
+   * that opens and closes the list under it, by mouse or keyboard.
+   */
+  function syncToggle(surface, taxLine, list) {
+    const expanded = open[surface.source];
+    if (list.hidden === expanded) list.hidden = !expanded;
+    if (!taxLine.classList.contains('vertex-tax-toggle')) taxLine.classList.add('vertex-tax-toggle');
+    if (taxLine.getAttribute('role') !== 'button') taxLine.setAttribute('role', 'button');
+    if (taxLine.getAttribute('tabindex') !== '0') taxLine.setAttribute('tabindex', '0');
+    if (taxLine.getAttribute('aria-expanded') !== String(expanded)) {
+      taxLine.setAttribute('aria-expanded', String(expanded));
+    }
+    if (toggles.has(taxLine)) return;
+    toggles.add(taxLine);
+    const flip = () => {
+      open[surface.source] = !open[surface.source];
+      schedule();
+    };
+    taxLine.addEventListener('click', flip);
+    taxLine.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        flip();
+      }
+    });
+  }
+
+  /** A Tax line that no longer has a list under it goes back to a plain line. */
+  function clearToggle(taxLine) {
+    if (!taxLine?.classList.contains('vertex-tax-toggle')) return;
+    taxLine.classList.remove('vertex-tax-toggle');
+    ['role', 'tabindex', 'aria-expanded'].forEach((name) => taxLine.removeAttribute(name));
+  }
+
   function syncBreakdown(surface, summary) {
     const existing = summary.querySelector('[data-vertex-tax-breakdown]');
     const taxLine = summary.querySelector(surface.taxLine);
@@ -130,16 +170,20 @@ function start() {
 
     if (rows.length === 0) {
       existing?.remove();
+      clearToggle(taxLine);
       return;
     }
     const signature = JSON.stringify(rows);
     const inPlace = existing?.previousElementSibling === taxLine;
-    if (inPlace && existing.dataset.vertexTaxBreakdown === signature) return;
-    existing?.remove();
-    const list = el('div', 'vertex-tax-breakdown');
-    list.dataset.vertexTaxBreakdown = signature;
-    rows.forEach((row) => list.append(surface.row(row.label, row.price)));
-    taxLine.after(list);
+    let list = existing;
+    if (!inPlace || existing.dataset.vertexTaxBreakdown !== signature) {
+      existing?.remove();
+      list = el('div', 'vertex-tax-breakdown');
+      list.dataset.vertexTaxBreakdown = signature;
+      rows.forEach((row) => list.append(surface.row(row.label, row.price)));
+      taxLine.after(list);
+    }
+    syncToggle(surface, taxLine, list);
   }
 
   function sync() {
