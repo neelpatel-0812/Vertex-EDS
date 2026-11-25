@@ -3,7 +3,8 @@
 ## 0.2.0 – in progress
 
 - **Works in any aem-boilerplate-commerce storefront with no block edits.** The
-  installer copies the files and adds one script tag to `head.html`;
+  installer copies the files and adds one script tag to `head.html`, with the nonce the
+  storefront's Content-Security-Policy requires;
   `scripts/vertex-tax/vertex-tax.js` attaches to the drop-ins' order summaries by itself.
 - **Tax breakdown:** each tax by name with its amount under the Tax line on cart,
   checkout, order confirmation and account order pages, styled with the drop-ins' own

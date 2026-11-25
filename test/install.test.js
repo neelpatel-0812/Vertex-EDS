@@ -103,3 +103,29 @@ test('adds the one script tag to head.html, once', () => {
   assert.match(once, /<script type="module" src="\/scripts\/vertex-tax\/vertex-tax\.js"><\/script>/);
   assert.equal(addHeadTag(once), once);
 });
+
+test('gives the tag the nonce the storefront\'s scripts carry, or its CSP blocks it', () => {
+  // The boilerplate's head.html only runs scripts with nonce="aem".
+  const head = [
+    '<meta http-equiv="Content-Security-Policy" content="script-src \'nonce-aem\' \'strict-dynamic\'">',
+    '<script nonce="aem" src="/scripts/aem.js" type="module"></script>',
+    '',
+  ].join('\n');
+
+  assert.match(
+    addHeadTag(head),
+    /<script nonce="aem" type="module" src="\/scripts\/vertex-tax\/vertex-tax\.js"><\/script>/,
+  );
+});
+
+test('replaces a tag added without the nonce by an earlier version', () => {
+  const head = [
+    '<script nonce="aem" src="/scripts/aem.js" type="module"></script>',
+    '<script type="module" src="/scripts/vertex-tax/vertex-tax.js"></script>',
+    '',
+  ].join('\n');
+
+  const fixed = addHeadTag(head);
+  assert.equal(fixed.match(/vertex-tax\.js/g).length, 1);
+  assert.match(fixed, /<script nonce="aem" type="module" src="\/scripts\/vertex-tax\/vertex-tax\.js">/);
+});

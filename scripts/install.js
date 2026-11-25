@@ -54,12 +54,28 @@ function listAssets(dir = ASSETS) {
   });
 }
 
-const HEAD_TAG = '<script type="module" src="/scripts/vertex-tax/vertex-tax.js"></script>';
+const SCRIPT_SRC = '/scripts/vertex-tax/vertex-tax.js';
 
-/** head.html with the package's script tag, added once at the end. */
+/**
+ * The script tag, with the nonce the storefront's own scripts carry. The boilerplate's
+ * head.html has a Content-Security-Policy that runs only scripts with that nonce
+ * (nonce="aem"), so a tag without it is blocked and the package never starts.
+ */
+function headTag(head) {
+  const nonce = head.match(/<script\b[^>]*\bnonce="([^"]+)"/);
+  const attribute = nonce ? ` nonce="${nonce[1]}"` : '';
+  return `<script${attribute} type="module" src="${SCRIPT_SRC}"></script>`;
+}
+
+/** Any script tag of ours, as written by this or an earlier version. */
+const OUR_TAG = /[ \t]*<script\b[^>]*src="\/scripts\/vertex-tax\/vertex-tax\.js"[^>]*><\/script>[ \t]*\n?/g;
+
+/** head.html with the package's script tag: added once at the end, or brought up to date. */
 function addHeadTag(head) {
-  if (head.includes('/scripts/vertex-tax/vertex-tax.js')) return head;
-  return `${head.replace(/\s*$/, '\n')}${HEAD_TAG}\n`;
+  const tag = headTag(head);
+  if (head.includes(tag)) return head;
+  const without = head.replace(OUR_TAG, '');
+  return `${without.replace(/\s*$/, '\n')}${tag}\n`;
 }
 
 function installHeadTag(projectRoot) {
@@ -125,8 +141,8 @@ function main(argv) {
     + 'or run "npx eds-vertex-tax --force" to overwrite it.',
   ));
   const head = installHeadTag(projectRoot);
-  if (head === 'added') log('added the vertex-tax script tag to head.html');
-  if (head === 'missing') warn(`no head.html found; add ${HEAD_TAG} to the storefront's head.html.`);
+  if (head === 'added') log('added (or updated) the vertex-tax script tag in head.html');
+  if (head === 'missing') warn(`no head.html found; add ${headTag('')} to the storefront's head.html.`);
   if (written.length || head === 'added') {
     log('done. Commit the written files, because Edge Delivery serves code from git.');
   }
