@@ -41,34 +41,22 @@ Two fixes made on the app side during this work, which the storefront shows as-i
 The three switches above, exactly where they are and what each shows, plus how to check
 them. Every storefront needs them, and nothing else tells a merchant they exist.
 
-### 2. Fallback notice (built; verify on Dev)
+### 2. Fallback notice (dropped)
 
-When Vertex cannot be reached, the app applies the merchant's fallback. "Block" stops
-checkout with the merchant's message; "zero" and "leave totals" leave no sign on the
-storefront, so a shopper sees no tax or Commerce's tax with nothing saying why.
+The idea: in the "zero" fallback the app adds one zero-amount tax titled "Tax to be
+confirmed: <message>", and the storefront shows it as a notice. Built and unit-tested,
+then tested on Dev on 2026-11-25: Commerce drops a tax line whose amount is zero, so the
+cart's `appliedTaxes` came back empty and there was nothing to show. The code was removed
+from the app and the package.
 
-- **App:** in the "zero" fallback, add one zero-amount tax entry whose title carries the
-  merchant's fallback message, so Commerce keeps it with the cart and order.
-- **Storefront:** the cart and order data carry a tax's title and amount only (no code),
-  so the package recognises the entry by its title. `scripts/vertex-tax/fallback.js`
-  finds it in the cart (`cart/data` event) and order data, and shows the message as a
-  notice next to the totals.
-- **Verify first:** whether Commerce keeps a zero-amount tax in `appliedTaxes` and order
-  `taxes` (and whether *Display Zero Tax* affects it), and whether the native full tax
-  summary already shows it as a row. If the native summary shows it legibly, the package
-  may only need to style or move it.
+If a notice is wanted later, the storefront has to ask the app: the app already records,
+per cart, that it was priced by the fallback (quotation-cache.ts, `QuoteFallback`). A
+small read-only web action looked up by the storefront's cart id would answer it. Not
+built: it adds a public endpoint, and "Block checkout" already tells the shopper.
 
 ## Package contents
 
-```
-assets/scripts/vertex-tax/
-  i18n.js       strings from the storefront's placeholders (vertex-tax-*), English defaults
-  taxes.js      cart and order tax data -> rows { label, amount, rate }   (pure)
-  fallback.js         detects the fallback mark on cart and order data       (pure)
-  fallback-notice.js  mountFallbackNotice(): shows/hides the notice             (DOM)
-  fallback-notice.css
-scripts/install.js   copies assets/ into the storefront, never overwriting local edits
-```
+Documentation only: README (setup), docs/GO-LIVE.md, this design, STANDARDS.md.
 
 ## Test storefront
 

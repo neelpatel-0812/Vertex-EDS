@@ -3,6 +3,11 @@
 How code in this package is written, organised, tested and released. Every change follows
 these; a reviewer can point at a section instead of re-arguing it.
 
+> **0.2.0 ships no code.** The storefront display is Adobe's drop-ins, switched on by
+> configuration (README). These standards apply when a feature brings code back: restore
+> the installer, lint and test setup from git history (commit b32ecb1, the last with code)
+> rather than starting over.
+
 ## 1. What the package is
 
 A set of files copied into an **aem-boilerplate-commerce** storefront (Edge Delivery
