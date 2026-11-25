@@ -115,8 +115,10 @@ export default async function decorate(block) {
 ```
 
 The notice stays hidden until a fallback happens, and loads its own CSS
-(`scripts/vertex-tax/fallback-notice.css`). Its text is translatable
-(`vertex-tax-fallback-title`, `vertex-tax-fallback-notice`).
+(`scripts/vertex-tax/fallback-notice.css`). Its heading is translatable
+(`vertex-tax-fallback-title`). Its text is the merchant's message when they wrote one,
+otherwise the translatable `vertex-tax-fallback-notice` ("Tax could not be calculated,
+so it is not included in this total. The store will confirm it with you.").
 
 Commerce also keeps the mark on the order, invoice and credit memo as a zero-amount tax
 titled "Tax to be confirmed: …", so the Admin and order emails show it too.

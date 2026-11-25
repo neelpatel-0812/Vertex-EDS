@@ -38,10 +38,14 @@ export function withoutFallback(rows) {
   return rows.filter((row) => !isMark(row.label));
 }
 
-/** The notice's heading and text, in the storefront's language. */
+/**
+ * The notice's heading and text. The text is the merchant's own message when they
+ * wrote one (in their store's language already), else the storefront's translatable
+ * default. Never both: the merchant's message usually says the same thing.
+ */
 export function noticeText(fallback, t) {
   return {
     title: t('vertex-tax-fallback-title'),
-    body: t('vertex-tax-fallback-notice', { message: fallback.message }).trim(),
+    body: fallback.message || t('vertex-tax-fallback-notice'),
   };
 }

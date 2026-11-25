@@ -24,9 +24,10 @@ test('fills {placeholders} in a string, leaving unknown ones visible', async () 
   const t = createStrings({});
 
   assert.equal(
-    t('vertex-tax-fallback-notice', { message: 'Tax is added when your order ships.' }),
-    'We could not calculate tax right now. Tax is added when your order ships.',
+    createStrings({ greeting: 'Hello {name}.' })('greeting', { name: 'Ana' }),
+    'Hello Ana.',
   );
+  assert.equal(t('vertex-tax-missing-key'), 'vertex-tax-missing-key');
   assert.equal(createStrings({ x: 'a {b} {c}' })('x', { b: 1 }), 'a 1 {c}');
 });
 

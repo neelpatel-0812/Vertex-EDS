@@ -46,13 +46,16 @@ test('reads the notice text, with the message or without', async () => {
   const { createStrings } = await loadAsset('i18n');
   const t = createStrings({});
 
+  // The merchant's message is the whole text: prefixing our own sentence made
+  // "We could not calculate tax right now. We can't calculate tax right now."
   assert.deepEqual(noticeText({ message: 'We will email you.' }, t), {
     title: 'Tax to be confirmed',
-    body: 'We could not calculate tax right now. We will email you.',
+    body: 'We will email you.',
   });
+  // No message: the storefront's own, which says what happens next.
   assert.deepEqual(noticeText({ message: '' }, t), {
     title: 'Tax to be confirmed',
-    body: 'We could not calculate tax right now.',
+    body: 'Tax could not be calculated, so it is not included in this total. The store will confirm it with you.',
   });
 });
 

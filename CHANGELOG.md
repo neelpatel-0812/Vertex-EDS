@@ -16,7 +16,10 @@
 - **Fallback notice:** `scripts/vertex-tax/fallback-notice.js` (`mountFallbackNotice`)
   shows "Tax to be confirmed" with the merchant's message when the Vertex Tax app priced
   the cart or order with its zero-tax fallback; `fallback.js` holds the detection. Host
-  snippets for cart, checkout, order confirmation and the My Account order page. Needs
+  snippets for cart, checkout, order confirmation and the My Account order page.
+  The notice shows the merchant's message on its own, or the storefront's default
+  when there is none (needs the Vertex Tax app from 2026-11-25, which no longer sends
+  its "try again" default in zero mode). Needs
   the Vertex Tax app version that marks its zero-tax fallback.
 - The installer leaves a blank line after its header, so copied files that open with a
   comment pass the storefront's stylelint.

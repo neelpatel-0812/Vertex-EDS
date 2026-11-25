@@ -8,7 +8,8 @@ import { fetchPlaceholders } from '../commerce.js';
  */
 export const DEFAULTS = {
   'vertex-tax-fallback-title': 'Tax to be confirmed',
-  'vertex-tax-fallback-notice': 'We could not calculate tax right now. {message}',
+  // Used only when the merchant wrote no message of their own.
+  'vertex-tax-fallback-notice': 'Tax could not be calculated, so it is not included in this total. The store will confirm it with you.',
 };
 
 /**
