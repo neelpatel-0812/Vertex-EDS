@@ -3,6 +3,7 @@
  * summary shows it. Pure; vertex-tax.js puts them on the page.
  */
 import { formatMoney, formatRate } from './money.js';
+import { totalOf } from './taxes.js';
 
 /**
  * @param {{ label: string, amount: { value: number, currency: string }, rate: number|null }[]} rows
@@ -19,4 +20,18 @@ export function breakdownRows(rows, { showRates = true, locale } = {}) {
         price: formatMoney(row.amount, { locale }),
       };
     });
+}
+
+const digits = (text) => String(text ?? '').replace(/\D/g, '');
+
+/**
+ * Whether the rows add up to the tax the drop-in shows (`shown`, its Tax line text).
+ * The checkout shows an estimate for a half-filled address while the cart's saved taxes
+ * belong to the last full address, so a breakdown is only shown when it adds up. Compares
+ * digits only, so the drop-in's own symbol and separators never cause a mismatch.
+ */
+export function addsUpTo(rows, shown, { locale } = {}) {
+  const total = totalOf(rows);
+  if (!total || !digits(shown)) return false;
+  return digits(formatMoney(total, { locale })) === digits(shown);
 }

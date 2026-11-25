@@ -37,3 +37,25 @@ test('has nothing to show when there are no taxes, and leaves out zero amounts',
 
   assert.deepEqual(breakdownRows([], {}), []);
 });
+
+// The checkout shows an *estimate* for a half-filled address while the cart's saved taxes
+// are still the last full address's, so a breakdown must add up to the Tax line shown.
+test('says whether the rows add up to the tax shown', async () => {
+  const { addsUpTo } = await loadAsset('breakdown');
+  const rows = [
+    { label: 'CGST', amount: { value: 2.19, currency: 'USD' }, rate: null },
+    { label: 'SGST', amount: { value: 2.19, currency: 'USD' }, rate: null },
+  ];
+
+  assert.equal(addsUpTo(rows, '$4.38', { locale: 'en-US' }), true);
+  assert.equal(addsUpTo(rows, '$13.14', { locale: 'en-US' }), false);
+  assert.equal(addsUpTo(rows, '', { locale: 'en-US' }), false);
+  assert.equal(addsUpTo([], '$0.00', { locale: 'en-US' }), false);
+});
+
+test('compares the digits, so a different symbol or separator still matches', async () => {
+  const { addsUpTo } = await loadAsset('breakdown');
+  const rows = [{ label: 'VAT', amount: { value: 1234.5, currency: 'EUR' }, rate: null }];
+
+  assert.equal(addsUpTo(rows, '1.234,50 €', { locale: 'en-US' }), true);
+});

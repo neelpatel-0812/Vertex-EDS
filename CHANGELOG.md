@@ -14,6 +14,16 @@
   action (`<meta name="vertex-tax-status-url">`), because Commerce drops the
   zero-amount mark the 0.2 drafts relied on. Shows the merchant's message, or a
   translatable default.
+- **Recalculating loader and "Tax not updated" notice:** the Tax and Total amounts
+  shimmer while Commerce re-totals the cart (new address, shipping method, coupon or
+  cart line). When Commerce refuses the change, for example an address Vertex cannot
+  place, the old amounts are struck through and the reason is shown. Before, the
+  checkout drop-in only logged that error, and the previous address's tax stayed on
+  screen. Watches the storefront's `CORE_FETCH_GRAPHQL` client.
+- **The breakdown always adds up to the Tax line.** For a half-filled checkout address
+  the cart drop-in shows an estimate (`estimateTotals`) while the cart's saved taxes are
+  still the last full address's; the breakdown now follows whichever the Tax line shows,
+  and is left out when neither adds up.
 - Settings: `vertex-tax-status-url`, `vertex-tax-breakdown`, `vertex-tax-show-rates`.
 - **Removed** the 0.1 `vertex-tax-estimate` block and its `estimate-tax` client: the cart
   drop-in's Estimate Shipping prices the cart through Vertex already. 0.1 was never

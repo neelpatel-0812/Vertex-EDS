@@ -1,9 +1,12 @@
 import { events } from '@dropins/tools/event-bus.js';
 import { loadCSS } from '../aem.js';
-import { breakdownRows } from './breakdown.js';
+// Namespace import: an older storefront without CORE_FETCH_GRAPHQL must not fail to load.
+import * as commerce from '../commerce.js';
+import { addsUpTo, breakdownRows } from './breakdown.js';
 import { readSetting } from './config.js';
 import { cartNeedsCheck, noticeText, orderNeedsCheck } from './fallback.js';
 import { loadStrings } from './i18n.js';
+import { createRecalcTracker, estimatedTaxes } from './recalc.js';
 import { createStatusClient } from './status.js';
 import { cartTaxRows, orderTaxRows } from './taxes.js';
 
@@ -19,7 +22,10 @@ import { cartTaxRows, orderTaxRows } from './taxes.js';
  *     Commerce's "Display Full Tax Summary" is on, the drop-in lists them itself and
  *     nothing is added;
  *   - shows "Tax to be confirmed" above the summary when the Vertex Tax app says the
- *     cart or order was priced by the merchant's fallback (status.js).
+ *     cart or order was priced by the merchant's fallback (status.js);
+ *   - shimmers the Tax and Total amounts while Commerce recalculates the cart, and says
+ *     so when it refused the change (an address Vertex cannot place) and the amounts
+ *     shown are still the old ones (recalc.js).
  *
  * The drop-ins re-render their summaries, which removes anything added inside them, so
  * a MutationObserver puts it back. Every step is idempotent: a pass that finds nothing
@@ -78,7 +84,14 @@ function start() {
   };
   const status = createStatusClient({ url: settings.statusUrl });
   const state = {
-    cart: null, order: null, cartStatus: NO, orderStatus: NO, t: null,
+    cart: null,
+    order: null,
+    cartStatus: NO,
+    orderStatus: NO,
+    t: null,
+    recalc: { pending: false, error: null },
+    // Taxes from the cart drop-in's last estimate (a half-filled checkout address).
+    estimate: null,
   };
   // Whether each breakdown is open. Kept here, not on the element: the drop-ins
   // re-render the summary, and the shopper's choice must survive that.
@@ -157,15 +170,23 @@ function start() {
     ['role', 'tabindex', 'aria-expanded'].forEach((name) => taxLine.removeAttribute(name));
   }
 
+  /**
+   * The taxes behind the Tax line shown. On checkout that is the cart's saved taxes, or
+   * the estimate the drop-in made for a half-filled address; whichever adds up to the
+   * amount on the line. Neither adding up means no breakdown: a wrong one is worse.
+   */
+  function taxRowsFor(surface, taxLine) {
+    if (surface.source === 'order') return orderTaxRows(state.order);
+    const shown = taxLine.querySelector('.cart-order-summary__price')?.textContent ?? '';
+    const candidates = [cartTaxRows(state.cart), cartTaxRows({ appliedTaxes: state.estimate })];
+    return candidates.find((rows) => addsUpTo(rows, shown)) ?? [];
+  }
+
   function syncBreakdown(surface, summary) {
     const existing = summary.querySelector('[data-vertex-tax-breakdown]');
     const taxLine = summary.querySelector(surface.taxLine);
-    const data = surface.source === 'cart' ? state.cart : state.order;
     const rows = settings.breakdown && taxLine && !summary.querySelector(surface.fullTaxes)
-      ? breakdownRows(
-        surface.source === 'cart' ? cartTaxRows(data) : orderTaxRows(data),
-        { showRates: settings.showRates },
-      )
+      ? breakdownRows(taxRowsFor(surface, taxLine), { showRates: settings.showRates })
       : [];
 
     if (rows.length === 0) {
@@ -186,12 +207,49 @@ function start() {
     syncToggle(surface, taxLine, list);
   }
 
+  /**
+   * While the cart is being re-totalled, a loader over the Tax and Total amounts; when
+   * Commerce refused the change, a notice that they are out of date and why.
+   */
+  function syncRecalc(surface, summary) {
+    if (surface.source !== 'cart') return;
+    const { pending, error } = state.recalc;
+    const stale = !pending && error !== null;
+    if (summary.classList.contains('vertex-tax-loading') !== pending) {
+      summary.classList.toggle('vertex-tax-loading', pending);
+      summary.setAttribute('aria-busy', String(pending));
+    }
+    if (summary.classList.contains('vertex-tax-stale') !== stale) {
+      summary.classList.toggle('vertex-tax-stale', stale);
+    }
+
+    let notice = summary.querySelector(':scope > [data-vertex-tax-error]');
+    if (!stale || !state.t) {
+      if (notice) notice.hidden = true;
+      return;
+    }
+    if (!notice) {
+      notice = el('div', 'vertex-tax-error');
+      notice.setAttribute('data-vertex-tax-error', '');
+      notice.setAttribute('role', 'alert');
+      notice.append(el('strong', 'vertex-tax-error-title'), el('p', 'vertex-tax-error-body'));
+      summary.prepend(notice);
+    }
+    const [title, body] = notice.children;
+    const titleText = state.t('vertex-tax-error-title');
+    const bodyText = error.message || state.t('vertex-tax-error-notice');
+    if (title.textContent !== titleText) title.textContent = titleText;
+    if (body.textContent !== bodyText) body.textContent = bodyText;
+    notice.hidden = false;
+  }
+
   function sync() {
     SURFACES.forEach((surface) => {
       document.querySelectorAll(surface.summary).forEach((summary) => {
         try {
           syncNotice(surface, summary);
           syncBreakdown(surface, summary);
+          syncRecalc(surface, summary);
         } catch (error) {
           console.warn('[vertex-tax] could not update the tax summary', error);
         }
@@ -229,6 +287,39 @@ function start() {
     schedule();
   };
 
+  // Commerce's GraphQL client, which the cart and checkout drop-ins send through. The
+  // hooks only watch: each returns what it was given, and never throws.
+  const tracker = createRecalcTracker({
+    onChange: (next) => {
+      state.recalc = next;
+      schedule();
+    },
+  });
+  const client = commerce.CORE_FETCH_GRAPHQL;
+  if (typeof client?.addBeforeHook === 'function' && typeof client.addAfterHook === 'function') {
+    client.addBeforeHook((requestInit) => {
+      try {
+        tracker.before(requestInit);
+      } catch (error) {
+        console.warn('[vertex-tax] could not watch a cart update', error);
+      }
+      return requestInit;
+    });
+    client.addAfterHook((requestInit, response) => {
+      try {
+        tracker.after(requestInit, response);
+        const estimate = estimatedTaxes(requestInit, response);
+        if (estimate) {
+          state.estimate = estimate;
+          schedule();
+        }
+      } catch (error) {
+        console.warn('[vertex-tax] could not watch a cart update', error);
+      }
+      return response;
+    });
+  }
+
   loadStrings().then((t) => {
     state.t = t;
     schedule();
@@ -236,7 +327,10 @@ function start() {
   events.on('cart/data', onCart, { eager: true });
   events.on('order/data', onOrder, { eager: true });
   events.on('order/placed', onOrder, { eager: true });
-  new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+  // characterData too: the drop-in changes the Tax amount's text in place.
+  new MutationObserver(schedule).observe(document.body, {
+    childList: true, subtree: true, characterData: true,
+  });
   schedule();
 }
 

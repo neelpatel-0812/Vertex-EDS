@@ -63,3 +63,62 @@
 .vertex-tax-breakdown[hidden] {
   display: none;
 }
+
+/* While Commerce recalculates the cart: the Tax and Total amounts shimmer in place, so
+   the shopper sees they are about to change. */
+.vertex-tax-loading :is(.cart-order-summary__taxTotal, .cart-order-summary__taxEntry, .cart-order-summary__total)
+  .cart-order-summary__price {
+  color: transparent;
+  border-radius: var(--shape-border-radius-1, 3px);
+  background: linear-gradient(
+    90deg,
+    var(--color-neutral-300, #e6e6e6) 25%,
+    var(--color-neutral-200, #f0f0f0) 50%,
+    var(--color-neutral-300, #e6e6e6) 75%
+  );
+  background-size: 200% 100%;
+  animation: vertex-tax-shimmer 1.2s linear infinite;
+}
+
+.vertex-tax-loading :is(.cart-order-summary__taxTotal, .cart-order-summary__taxEntry, .cart-order-summary__total)
+  .cart-order-summary__price * {
+  visibility: hidden;
+}
+
+@keyframes vertex-tax-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vertex-tax-loading :is(.cart-order-summary__taxTotal, .cart-order-summary__taxEntry, .cart-order-summary__total)
+    .cart-order-summary__price {
+    animation: none;
+  }
+}
+
+/* Commerce refused the last change (an address Vertex cannot place) and kept the old
+   amounts: they are dimmed and struck through under the notice saying why. */
+.vertex-tax-stale :is(.cart-order-summary__taxTotal, .cart-order-summary__taxEntry, .cart-order-summary__total)
+  .cart-order-summary__price {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+.vertex-tax-error {
+  display: grid;
+  gap: var(--spacing-xsmall, 4px);
+  margin-bottom: var(--spacing-small, 8px);
+  padding: var(--spacing-small, 8px) var(--spacing-medium, 16px);
+  border: var(--shape-border-width-1, 1px) solid var(--color-alert-500, #c00);
+  border-radius: var(--shape-border-radius-1, 3px);
+  background: var(--color-alert-200, #fdeeee);
+}
+
+.vertex-tax-error[hidden] {
+  display: none;
+}
+
+.vertex-tax-error-body {
+  margin: 0;
+}

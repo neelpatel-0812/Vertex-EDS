@@ -30,7 +30,7 @@ afterEach(() => {
 
 test('ships the shared modules', () => {
   assert.deepEqual(listAssets().sort(), [
-    ...['breakdown', 'config', 'fallback', 'i18n', 'money', 'status', 'taxes', 'vertex-tax']
+    ...['breakdown', 'config', 'fallback', 'i18n', 'money', 'recalc', 'status', 'taxes', 'vertex-tax']
       .map((name) => path.join('scripts', 'vertex-tax', `${name}.js`)),
     path.join('scripts', 'vertex-tax', 'vertex-tax.css'),
   ].sort());

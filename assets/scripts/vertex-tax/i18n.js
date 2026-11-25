@@ -10,6 +10,9 @@ export const DEFAULTS = {
   'vertex-tax-fallback-title': 'Tax to be confirmed',
   // Used only when the merchant wrote no message of their own.
   'vertex-tax-fallback-notice': 'Tax could not be calculated, so it is not included in this total. The store will confirm it with you.',
+  'vertex-tax-error-title': 'Tax not updated',
+  // Used only when Commerce gave no reason of its own.
+  'vertex-tax-error-notice': 'The tax and total shown are for your previous details. Check the address and try again.',
 };
 
 /**
