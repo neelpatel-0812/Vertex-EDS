@@ -108,3 +108,13 @@ test('passes on the Block fallback as its own reason', async () => {
     reason: 'unavailable',
   });
 });
+
+test('sends the cart keys along with the cart id', async () => {
+  const { createStatusClient } = await loadAsset('status');
+  const { calls, fetchImpl } = fakeFetch({ fallback: false });
+  const keys = ['00066b5711fc3fa4644ee3ec05c461bc', '1234567890abcdef1234567890abcdef'];
+
+  await createStatusClient({ url: APP_URL, fetchImpl })({ cart: 'abc', version: 'v1', keys });
+
+  assert.equal(calls[0], `${APP_URL}?cart=abc&v=v1&key=${keys.join(',')}`);
+});

@@ -47,7 +47,10 @@ export function createStatusClient({
     const [kind, value] = subject.cart ? ['cart', subject.cart] : ['order', subject.order];
     if (!value) return NO;
 
-    const version = subject.cart && subject.version ? `&v=${encodeURIComponent(subject.version)}` : '';
+    const keys = subject.cart && Array.isArray(subject.keys)
+      ? subject.keys.filter((key) => /^[a-f0-9]{32}$/.test(key)).slice(0, 2) : [];
+    const version = (subject.cart && subject.version ? `&v=${encodeURIComponent(subject.version)}` : '')
+      + (keys.length ? `&key=${keys.join(',')}` : '');
     const key = `${kind}:${value}${version}`;
     const remembered = memo.get(key);
     if (remembered && now() - remembered.at < MEMO_MS) return remembered.answer;

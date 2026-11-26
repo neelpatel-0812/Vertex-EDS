@@ -55,6 +55,45 @@ export function cartVersion(cart, estimateTaxes = null) {
   return hash.toString(36);
 }
 
+/*
+ * The cart key (the Vertex Tax app's src/lib/tax/cart-key.ts builds the same one from
+ * the tax webhook). Commerce as a Cloud Service cannot look a cart up by the storefront's
+ * cart id, so the app finds the cart by what was priced: where it ships, and which
+ * products, how many. Only the hash leaves the page.
+ *
+ *   v1|<COUNTRY>|<POSTCODE>|<sku>*<qty>,...   (sorted, SKUs lower case)
+ */
+
+/** `{ countryCode, postcode }` of the cart drop-in's saved shipping address, or null. */
+export function savedDestination(cart) {
+  const address = Array.isArray(cart?.addresses?.shipping) ? cart.addresses.shipping[0] : null;
+  return address ? { countryCode: address.countryCode, postcode: address.zipCode } : null;
+}
+
+/** The key's text for these cart items and destination, or null when either is missing. */
+export function cartKeyText(items, destination) {
+  const country = String(destination?.countryCode ?? '').trim().toUpperCase();
+  const postcode = String(destination?.postcode ?? '').trim().toUpperCase().replace(/\s+/g, '');
+  const lines = (Array.isArray(items) ? items : [])
+    .filter((item) => String(item?.sku ?? '').trim())
+    .map((item) => `${String(item.sku).trim().toLowerCase()}*${Number(item.quantity)}`)
+    .sort();
+  if (!country || !postcode || lines.length === 0) return null;
+  return `v1|${country}|${postcode}|${lines.join(',')}`;
+}
+
+/** The first 32 hex characters of the text's SHA-256, or null (no text, no Web Crypto). */
+export async function cartKey(text) {
+  if (!text || typeof crypto === 'undefined' || !crypto.subtle) return null;
+  try {
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return [...new Uint8Array(digest)]
+      .map((byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 32);
+  } catch {
+    return null;
+  }
+}
+
 /** An order with a number and zero tax. */
 export function orderNeedsCheck(order) {
   return Boolean(order?.number) && isZero(order?.totalTax);

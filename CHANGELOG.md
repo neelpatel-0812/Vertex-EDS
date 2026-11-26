@@ -37,6 +37,11 @@
   while the Tax line shows zero, and the app is also asked when the checkout's estimate
   comes back with zero tax. On order pages the breakdown is shown only when its rows
   add up to the order's Tax line, as on cart and checkout.
+- **Notices work on Commerce as a Cloud Service.** Its REST API cannot look a cart up by
+  the storefront's cart id, so the package also sends a cart key: a hash of the
+  destination (country, postcode) and the products with their quantities, for the saved
+  address and for the checkout's estimate. The Vertex Tax app builds the same key from
+  the tax webhook. Needs the app with cart keys (`tax-status?key=`).
 - Settings: `vertex-tax-status-url`, `vertex-tax-breakdown`, `vertex-tax-show-rates`.
 - **Removed** the 0.1 `vertex-tax-estimate` block and its `estimate-tax` client: the cart
   drop-in's Estimate Shipping prices the cart through Vertex already. 0.1 was never

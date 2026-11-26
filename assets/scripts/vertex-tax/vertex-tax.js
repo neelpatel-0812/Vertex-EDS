@@ -5,10 +5,11 @@ import * as commerce from '../commerce.js';
 import { addsUpTo, breakdownRows } from './breakdown.js';
 import { readSetting } from './config.js';
 import {
-  cartCheckWanted, cartVersion, noticeText, orderNeedsCheck, showsZero,
+  cartCheckWanted, cartKey, cartKeyText, cartVersion, noticeText, orderNeedsCheck,
+  savedDestination, showsZero,
 } from './fallback.js';
 import { loadStrings } from './i18n.js';
-import { createRecalcTracker, estimatedTaxes } from './recalc.js';
+import { createRecalcTracker, estimateDestination, estimatedTaxes } from './recalc.js';
 import { createStatusClient } from './status.js';
 import { cartTaxRows, orderTaxRows } from './taxes.js';
 
@@ -95,8 +96,10 @@ function start() {
     orderStatus: NO,
     t: null,
     recalc: { pending: false, error: null },
-    // Taxes from the cart drop-in's last estimate (a half-filled checkout address).
+    // Taxes from the cart drop-in's last estimate (a half-filled checkout address), and
+    // where it was for.
     estimate: null,
+    estimateDestination: null,
   };
   // Whether each breakdown is open. Kept here, not on the element: the drop-ins
   // re-render the summary, and the shopper's choice must survive that.
@@ -280,13 +283,21 @@ function start() {
       schedule();
       return;
     }
-    status({ cart: cart.id, version: cartVersion(cart, estimate) }).then((answer) => {
-      // Only if nothing changed while it was asked.
-      if (state.cart === cart && state.estimate === estimate) {
-        state.cartStatus = answer;
-        schedule();
-      }
-    });
+    // The cart keys of the saved address and of the estimate (fallback.js): how the app
+    // finds the cart on Commerce as a Cloud Service.
+    const destinations = [savedDestination(cart), state.estimateDestination];
+    Promise.all(destinations.map((destination) => cartKey(cartKeyText(cart.items, destination))))
+      .then((keys) => status({
+        cart: cart.id, version: cartVersion(cart, estimate), keys: keys.filter(Boolean),
+      }))
+      .then((answer) => {
+        // Only if nothing changed while it was asked.
+        if (state.cart === cart && state.estimate === estimate) {
+          state.cartStatus = answer;
+          schedule();
+        }
+      })
+      .catch(() => {});
   };
 
   const onCart = (cart) => {
@@ -334,6 +345,7 @@ function start() {
         const estimate = estimatedTaxes(requestInit, response);
         if (estimate) {
           state.estimate = estimate;
+          state.estimateDestination = estimateDestination(requestInit);
           askCart();
           schedule();
         }

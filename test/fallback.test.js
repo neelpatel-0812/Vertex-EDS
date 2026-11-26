@@ -118,3 +118,44 @@ test("a cart's version also changes with its estimate", async () => {
   assert.notEqual(cartVersion(cart, []), cartVersion(cart, [{ label: 'State', amount: usd(1.5) }]));
   assert.equal(cartVersion(cart), cartVersion(cart, null));
 });
+
+// The Vertex Tax app builds the same key from the tax webhook (src/lib/tax/cart-key.ts):
+// Commerce as a Cloud Service cannot look a cart up by the storefront's cart id, so
+// tax-status finds it by what was priced. Shared example: change one, change both.
+const SHARED_TEXT = 'v1|US|2121|adb127*1,adb215*2';
+const SHARED_KEY = '00066b5711fc3fa4644ee3ec05c461bc';
+
+test('builds the cart key text from the products and the destination', async () => {
+  const { cartKeyText } = await loadAsset('fallback');
+  const items = [{ sku: 'ADB215', quantity: 2 }, { sku: 'ADB127', quantity: 1 }];
+
+  assert.equal(cartKeyText(items, { countryCode: 'us', postcode: ' 2121 ' }), SHARED_TEXT);
+  assert.equal(cartKeyText(items, { countryCode: 'US' }), null);
+  assert.equal(cartKeyText([], { countryCode: 'US', postcode: '2121' }), null);
+});
+
+test('hashes it exactly as the app does', async () => {
+  const { cartKey } = await loadAsset('fallback');
+
+  assert.equal(await cartKey(SHARED_TEXT), SHARED_KEY);
+  assert.equal(await cartKey(null), null);
+});
+
+test('reads the destination of a saved address and of an estimate alike', async () => {
+  const { savedDestination } = await loadAsset('fallback');
+  const { estimateDestination } = await loadAsset('recalc');
+  const estimate = {
+    method: 'POST',
+    body: JSON.stringify({
+      query: 'mutation GET_ESTIMATED_TOTALS_MUTATION { estimateTotals(input: {}) { cart { id } } }',
+      variables: { address: { country_code: 'US', postcode: '2121', region: { region_id: 33 } } },
+    }),
+  };
+
+  assert.deepEqual(
+    savedDestination({ addresses: { shipping: [{ countryCode: 'US', zipCode: '2121' }] } }),
+    { countryCode: 'US', postcode: '2121' },
+  );
+  assert.equal(savedDestination({ addresses: { shipping: null } }), null);
+  assert.deepEqual(estimateDestination(estimate), { countryCode: 'US', postcode: '2121' });
+});

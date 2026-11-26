@@ -87,6 +87,22 @@ export function createRecalcTracker({
 }
 
 /**
+ * `{ countryCode, postcode }` the cart drop-in's estimate was asked for (its request's
+ * `address` variable), or null for any other call. For the cart key (fallback.js).
+ */
+export function estimateDestination(requestInit) {
+  if (!changesTotals(requestInit) || !/\bestimateTotals\s*\(/.test(queryOf(requestInit))) {
+    return null;
+  }
+  try {
+    const address = JSON.parse(requestInit.body)?.variables?.address;
+    return address ? { countryCode: address.country_code, postcode: address.postcode } : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The taxes in the cart drop-in's estimate (`estimateTotals`, run for a half-filled
  * checkout address), shaped like the drop-in's `appliedTaxes`; undefined for any other
  * call. The drop-in shows the estimate's tax on the Tax line but emits no cart data for
