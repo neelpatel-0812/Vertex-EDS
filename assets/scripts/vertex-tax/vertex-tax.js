@@ -4,7 +4,9 @@ import { loadCSS } from '../aem.js';
 import * as commerce from '../commerce.js';
 import { addsUpTo, breakdownRows } from './breakdown.js';
 import { readSetting } from './config.js';
-import { cartNeedsCheck, noticeText, orderNeedsCheck } from './fallback.js';
+import {
+  cartNeedsCheck, cartVersion, noticeText, orderNeedsCheck,
+} from './fallback.js';
 import { loadStrings } from './i18n.js';
 import { createRecalcTracker, estimatedTaxes } from './recalc.js';
 import { createStatusClient } from './status.js';
@@ -260,7 +262,7 @@ function start() {
   const onCart = (cart) => {
     state.cart = cart ?? null;
     if (cartNeedsCheck(cart)) {
-      status({ cart: cart.id }).then((answer) => {
+      status({ cart: cart.id, version: cartVersion(cart) }).then((answer) => {
         if (state.cart === cart) {
           state.cartStatus = answer;
           schedule();

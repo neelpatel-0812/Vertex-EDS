@@ -13,6 +13,22 @@
 /** The cart mutations that make Commerce collect totals again. */
 const TOTALS_CALLS = /\b(setShippingAddressesOnCart|setBillingAddressOnCart|setShippingMethodsOnCart|estimateTotals|applyCouponsToCart|applyCouponToCart|removeCouponsFromCart|removeCouponFromCart|addProductsToCart|updateCartItems|removeItemFromCart)\s*\(/;
 
+/**
+ * The calls whose failure the checkout drop-in only logs (an address or a shipping
+ * method), so the shopper hears of it only from this package. The cart drop-in shows its
+ * own errors for coupons and cart lines, and an estimate saves nothing, so those calls
+ * neither raise nor clear the notice.
+ */
+const SAVED_CHANGE_CALLS = /\b(setShippingAddressesOnCart|setBillingAddressOnCart|setShippingMethodsOnCart)\s*\(/;
+
+function queryOf(requestInit) {
+  try {
+    return JSON.parse(requestInit.body)?.query ?? '';
+  } catch {
+    return '';
+  }
+}
+
 /** Longest a loader stays up when no answer comes back (a network failure skips the hook). */
 export const MAX_WAIT_MS = 15000;
 
@@ -64,7 +80,7 @@ export function createRecalcTracker({
       if (!changesTotals(requestInit)) return;
       inFlight = Math.max(0, inFlight - 1);
       if (inFlight === 0) clearTimer(timer);
-      error = firstError(response);
+      if (SAVED_CHANGE_CALLS.test(queryOf(requestInit))) error = firstError(response);
       changed();
     },
   };
@@ -77,7 +93,7 @@ export function createRecalcTracker({
  * it, so this is the only place its breakdown can come from.
  */
 export function estimatedTaxes(requestInit, response) {
-  if (!changesTotals(requestInit) || !/\bestimateTotals\s*\(/.test(JSON.parse(requestInit.body).query)) {
+  if (!changesTotals(requestInit) || !/\bestimateTotals\s*\(/.test(queryOf(requestInit))) {
     return undefined;
   }
   const taxes = response?.data?.estimateTotals?.cart?.prices?.applied_taxes;

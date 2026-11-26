@@ -45,3 +45,31 @@ test('reads the notice text: the merchant message on its own, else the default',
     body: 'Tax could not be calculated, so it is not included in this total. The store will confirm it with you.',
   });
 });
+
+// The Vertex Tax app prices a cart whose address Vertex cannot place at zero tax, and
+// refuses only the order: the notice is how the shopper learns to fix the address.
+test('asks the shopper to check the address when Vertex could not place it', async () => {
+  const { noticeText } = await loadAsset('fallback');
+  const { createStrings } = await loadAsset('i18n');
+  const t = createStrings({});
+
+  assert.deepEqual(noticeText({ reason: 'address', message: 'Check the postcode.' }, t), {
+    title: 'Check your address',
+    body: 'Check the postcode.',
+  });
+  assert.deepEqual(noticeText({ reason: 'address' }, t).body, t('vertex-tax-address-notice'));
+});
+
+test("a cart's version changes with its address or totals, not with a re-render", async () => {
+  const { cartVersion } = await loadAsset('fallback');
+  const cart = {
+    id: 'c1',
+    totalQuantity: 1,
+    addresses: { shipping: [{ postCode: '21131' }] },
+    total: { includingTax: usd(25) },
+  };
+
+  assert.equal(cartVersion(cart), cartVersion(structuredClone(cart)));
+  assert.notEqual(cartVersion(cart), cartVersion({ ...cart, addresses: { shipping: [{ postCode: '380001' }] } }));
+  assert.match(cartVersion(cart), /^[a-z0-9]+$/);
+});

@@ -71,3 +71,30 @@ test('asks nothing when the app address is not configured', async () => {
   assert.deepEqual(await createStatusClient({ url: '', fetchImpl })({ cart: 'abc' }), { fallback: false });
   assert.equal(calls.length, 0);
 });
+
+test('passes on why, so the notice can ask the shopper to check the address', async () => {
+  const { createStatusClient } = await loadAsset('status');
+  const { fetchImpl } = fakeFetch({ fallback: true, reason: 'address', message: 'Check it.' });
+
+  assert.deepEqual(await createStatusClient({ url: APP_URL, fetchImpl })({ cart: 'abc' }), {
+    fallback: true,
+    reason: 'address',
+    message: 'Check it.',
+  });
+});
+
+// A cart asked about before its address was entered must not keep that answer once the
+// address is rejected: the cart changed, so the question is new (and so is the URL, which
+// the browser would otherwise serve from its 30-second cache).
+test('asks again as soon as the cart changes', async () => {
+  const { createStatusClient } = await loadAsset('status');
+  const { calls, fetchImpl } = fakeFetch({ fallback: false });
+  const status = createStatusClient({ url: APP_URL, fetchImpl, now: () => 0 });
+
+  await status({ cart: 'abc', version: 'v1' });
+  await status({ cart: 'abc', version: 'v1' });
+  await status({ cart: 'abc', version: 'v2' });
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1], `${APP_URL}?cart=abc&v=v2`);
+});

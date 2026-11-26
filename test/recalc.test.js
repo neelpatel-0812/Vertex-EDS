@@ -121,3 +121,42 @@ test('reads no estimate from other calls or a failed one', async () => {
   assert.equal(estimatedTaxes(ADDRESS, { data: {} }), undefined);
   assert.equal(estimatedTaxes(ESTIMATE, { errors: [{ message: 'no' }], data: null }), undefined);
 });
+
+// The cart drop-in shows its own coupon and cart errors; the box is for the errors the
+// checkout swallows (an address or shipping method Commerce refused).
+test('leaves coupon and cart errors to the drop-in', async () => {
+  const { createRecalcTracker } = await loadAsset('recalc');
+  const tracker = createRecalcTracker({ setTimer: () => 0, clearTimer: () => {} });
+  const coupon = post('mutation { applyCouponsToCart(input: {}) { cart { id } } }');
+
+  tracker.before(coupon);
+  tracker.after(coupon, { errors: [{ message: 'The following coupon codes could not be applied' }] });
+
+  assert.deepEqual(tracker.state(), { pending: false, error: null });
+});
+
+// An estimate does not save the address, so it says nothing about the refused one.
+test('keeps the error when only an estimate goes through after it', async () => {
+  const { createRecalcTracker } = await loadAsset('recalc');
+  const tracker = createRecalcTracker({ setTimer: () => 0, clearTimer: () => {} });
+
+  tracker.before(ADDRESS);
+  tracker.after(ADDRESS, { errors: [{ message: 'no' }] });
+  tracker.before(ESTIMATE);
+  tracker.after(ESTIMATE, { data: { estimateTotals: { cart: {} } } });
+
+  assert.deepEqual(tracker.state().error, { message: 'no' });
+});
+
+test('a coupon that goes through does not clear a refused address either', async () => {
+  const { createRecalcTracker } = await loadAsset('recalc');
+  const tracker = createRecalcTracker({ setTimer: () => 0, clearTimer: () => {} });
+  const coupon = post('mutation { applyCouponsToCart(input: {}) { cart { id } } }');
+
+  tracker.before(ADDRESS);
+  tracker.after(ADDRESS, { errors: [{ message: 'no' }] });
+  tracker.before(coupon);
+  tracker.after(coupon, { data: {} });
+
+  assert.deepEqual(tracker.state().error, { message: 'no' });
+});

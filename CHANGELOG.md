@@ -19,7 +19,12 @@
   cart line). When Commerce refuses the change, for example an address Vertex cannot
   place, the old amounts are struck through and the reason is shown. Before, the
   checkout drop-in only logged that error, and the previous address's tax stayed on
-  screen. Watches the storefront's `CORE_FETCH_GRAPHQL` client.
+  screen. Watches the storefront's `CORE_FETCH_GRAPHQL` client. Only an address or
+  shipping-method update raises or clears it: coupon and cart errors are the cart
+  drop-in's own, and an estimate saves nothing.
+- **"Check your address" notice** when the Vertex Tax app could not place the address
+  (app 0.9.4: the cart is priced at zero tax and only the order is refused). The status
+  is asked again whenever the cart changes, not once per 30 seconds.
 - **The breakdown always adds up to the Tax line.** For a half-filled checkout address
   the cart drop-in shows an estimate (`estimateTotals`) while the cart's saved taxes are
   still the last full address's; the breakdown now follows whichever the Tax line shows,
@@ -30,7 +35,7 @@
   published.
 - Licensed under the Magneto IT Solutions LLC EULA (LICENSE.txt), published to the public
   npm registry like eds-pinterest-tracking.
-- Needs the Vertex Tax app 0.9.3 or later (the `tax-status` action).
+- Needs the Vertex Tax app 0.9.4 or later (the `tax-status` action, and its address reason).
 
 ## 0.1.0 – unreleased
 

@@ -17,15 +17,22 @@ const NO = Object.freeze({ fallback: false });
 
 function readAnswer(body) {
   if (!body || typeof body !== 'object' || body.fallback !== true) return NO;
-  return typeof body.message === 'string' && body.message.trim()
-    ? { fallback: true, message: body.message.trim() }
-    : { fallback: true };
+  return {
+    fallback: true,
+    // "address": Vertex could not place the address, and the shopper can fix it.
+    ...(body.reason === 'address' ? { reason: 'address' } : {}),
+    ...(typeof body.message === 'string' && body.message.trim()
+      ? { message: body.message.trim() } : {}),
+  };
 }
 
 /**
+ * `version` (cart only) changes whenever the cart does (fallback.js, cartVersion): a
+ * changed cart is a new question, and goes in the URL so the browser cache misses too.
+ *
  * @param {{ url: string, fetchImpl?: typeof fetch, now?: () => number }} options
- * @returns {(subject: { cart?: string, order?: string }) =>
- *   Promise<{ fallback: boolean, message?: string }>}
+ * @returns {(subject: { cart?: string, order?: string, version?: string }) =>
+ *   Promise<{ fallback: boolean, reason?: 'address', message?: string }>}
  */
 export function createStatusClient({
   url,
@@ -39,7 +46,8 @@ export function createStatusClient({
     const [kind, value] = subject.cart ? ['cart', subject.cart] : ['order', subject.order];
     if (!value) return NO;
 
-    const key = `${kind}:${value}`;
+    const version = subject.cart && subject.version ? `&v=${encodeURIComponent(subject.version)}` : '';
+    const key = `${kind}:${value}${version}`;
     const remembered = memo.get(key);
     if (remembered && now() - remembered.at < MEMO_MS) return remembered.answer;
 
@@ -49,7 +57,7 @@ export function createStatusClient({
       try {
         const separator = url.includes('?') ? '&' : '?';
         const response = await fetchImpl(
-          `${url}${separator}${kind}=${encodeURIComponent(value)}`,
+          `${url}${separator}${kind}=${encodeURIComponent(value)}${version}`,
           controller ? { signal: controller.signal } : undefined,
         );
         if (!response.ok) return NO;
