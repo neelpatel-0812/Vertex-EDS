@@ -5,7 +5,7 @@ import * as commerce from '../commerce.js';
 import { addsUpTo, breakdownRows } from './breakdown.js';
 import { readSetting } from './config.js';
 import {
-  cartNeedsCheck, cartVersion, noticeText, orderNeedsCheck,
+  cartCheckWanted, cartVersion, noticeText, orderNeedsCheck, showsZero,
 } from './fallback.js';
 import { loadStrings } from './i18n.js';
 import { createRecalcTracker, estimatedTaxes } from './recalc.js';
@@ -42,6 +42,8 @@ const SURFACES = [
     summary: '.cart-order-summary',
     fullTaxes: '.cart-order-summary__taxes',
     taxLine: '[data-testid="tax-total-only"]',
+    // The amount on the Tax line, or on the full summary's total when that is shown.
+    shownTax: '[data-testid="tax-total-only"] .cart-order-summary__price, .cart-order-summary__taxTotal .cart-order-summary__price',
     row: (label, price) => {
       const entry = el('div', 'cart-order-summary__entry cart-order-summary__taxEntry');
       entry.append(
@@ -56,6 +58,7 @@ const SURFACES = [
     summary: '.order-cost-summary',
     fullTaxes: '.order-cost-summary-content__accordion',
     taxLine: '.order-cost-summary-content__description--tax',
+    shownTax: '.order-cost-summary-content__description--tax .dropin-price, .order-cost-summary-content__accordion-total .dropin-price',
     row: (label, price) => {
       const entry = el('div', 'order-cost-summary-content__accordion-row');
       entry.append(el('p', '', label), el('p', '', price));
@@ -112,8 +115,17 @@ function start() {
     });
   };
 
+  /** The tax amount the drop-in shows in this summary, as text ('' when none is found). */
+  function shownTax(surface, summary) {
+    return summary.querySelector(surface.shownTax)?.textContent ?? '';
+  }
+
   function syncNotice(surface, summary) {
-    const statusNow = surface.source === 'cart' ? state.cartStatus : state.orderStatus;
+    const answer = surface.source === 'cart' ? state.cartStatus : state.orderStatus;
+    // Only next to a zero: on checkout the Tax line can be an estimate with tax while
+    // the app's answer is about the saved cart, or the other way round.
+    const shown = shownTax(surface, summary);
+    const statusNow = answer.fallback && shown && !showsZero(shown) ? NO : answer;
     let notice = summary.previousElementSibling;
     if (!notice?.hasAttribute('data-vertex-tax-notice')) {
       if (!statusNow.fallback) return;
@@ -177,10 +189,11 @@ function start() {
    * the estimate the drop-in made for a half-filled address; whichever adds up to the
    * amount on the line. Neither adding up means no breakdown: a wrong one is worse.
    */
-  function taxRowsFor(surface, taxLine) {
-    if (surface.source === 'order') return orderTaxRows(state.order);
-    const shown = taxLine.querySelector('.cart-order-summary__price')?.textContent ?? '';
-    const candidates = [cartTaxRows(state.cart), cartTaxRows({ appliedTaxes: state.estimate })];
+  function taxRowsFor(surface, summary) {
+    const shown = shownTax(surface, summary);
+    const candidates = surface.source === 'order'
+      ? [orderTaxRows(state.order)]
+      : [cartTaxRows(state.cart), cartTaxRows({ appliedTaxes: state.estimate })];
     return candidates.find((rows) => addsUpTo(rows, shown)) ?? [];
   }
 
@@ -188,7 +201,7 @@ function start() {
     const existing = summary.querySelector('[data-vertex-tax-breakdown]');
     const taxLine = summary.querySelector(surface.taxLine);
     const rows = settings.breakdown && taxLine && !summary.querySelector(surface.fullTaxes)
-      ? breakdownRows(taxRowsFor(surface, taxLine), { showRates: settings.showRates })
+      ? breakdownRows(taxRowsFor(surface, summary), { showRates: settings.showRates })
       : [];
 
     if (rows.length === 0) {
@@ -259,18 +272,26 @@ function start() {
     });
   }
 
+  /** Asks the Vertex Tax app about the cart when its saved or estimated tax is zero. */
+  const askCart = () => {
+    const { cart, estimate } = state;
+    if (!cartCheckWanted(cart, estimate)) {
+      state.cartStatus = NO;
+      schedule();
+      return;
+    }
+    status({ cart: cart.id, version: cartVersion(cart, estimate) }).then((answer) => {
+      // Only if nothing changed while it was asked.
+      if (state.cart === cart && state.estimate === estimate) {
+        state.cartStatus = answer;
+        schedule();
+      }
+    });
+  };
+
   const onCart = (cart) => {
     state.cart = cart ?? null;
-    if (cartNeedsCheck(cart)) {
-      status({ cart: cart.id, version: cartVersion(cart) }).then((answer) => {
-        if (state.cart === cart) {
-          state.cartStatus = answer;
-          schedule();
-        }
-      });
-    } else {
-      state.cartStatus = NO;
-    }
+    askCart();
     schedule();
   };
 
@@ -313,6 +334,7 @@ function start() {
         const estimate = estimatedTaxes(requestInit, response);
         if (estimate) {
           state.estimate = estimate;
+          askCart();
           schedule();
         }
       } catch (error) {

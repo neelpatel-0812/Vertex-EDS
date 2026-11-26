@@ -87,3 +87,34 @@ test('says tax cannot be calculated right now under the Block fallback', async (
   });
   assert.equal(noticeText({ reason: 'unavailable' }, t).body, t('vertex-tax-unavailable-notice'));
 });
+
+// #4: the notice follows the Tax line on screen, which on checkout can be an estimate
+// for a half-filled address rather than the cart's saved tax.
+test('reads whether the Tax line on screen shows zero', async () => {
+  const { showsZero } = await loadAsset('fallback');
+
+  assert.equal(showsZero('$0.00'), true);
+  assert.equal(showsZero('0,00 €'), true);
+  assert.equal(showsZero('$1.50'), false);
+  assert.equal(showsZero(''), false);
+});
+
+test('asks about a cart whose estimate shows zero tax, even if its saved tax does not', async () => {
+  const { cartCheckWanted } = await loadAsset('fallback');
+  const taxed = { id: 'c1', totalQuantity: 1, totalTax: usd(13.14) };
+
+  assert.equal(cartCheckWanted(taxed, null), false);
+  assert.equal(cartCheckWanted(taxed, []), true);
+  assert.equal(cartCheckWanted(taxed, [{ label: 'State', amount: usd(0) }]), true);
+  assert.equal(cartCheckWanted(taxed, [{ label: 'State', amount: usd(1.5) }]), false);
+  assert.equal(cartCheckWanted({ ...taxed, totalTax: usd(0) }, null), true);
+  assert.equal(cartCheckWanted({ ...taxed, totalQuantity: 0 }, []), false);
+});
+
+test("a cart's version also changes with its estimate", async () => {
+  const { cartVersion } = await loadAsset('fallback');
+  const cart = { id: 'c1', totalQuantity: 1 };
+
+  assert.notEqual(cartVersion(cart, []), cartVersion(cart, [{ label: 'State', amount: usd(1.5) }]));
+  assert.equal(cartVersion(cart), cartVersion(cart, null));
+});

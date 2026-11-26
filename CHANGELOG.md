@@ -32,6 +32,11 @@
   the cart drop-in shows an estimate (`estimateTotals`) while the cart's saved taxes are
   still the last full address's; the breakdown now follows whichever the Tax line shows,
   and is left out when neither adds up.
+- **Notices and the breakdown agree with the Tax line on screen.** A notice ("Tax to be
+  confirmed", "Check your address", "Tax can't be calculated right now") shows only
+  while the Tax line shows zero, and the app is also asked when the checkout's estimate
+  comes back with zero tax. On order pages the breakdown is shown only when its rows
+  add up to the order's Tax line, as on cart and checkout.
 - Settings: `vertex-tax-status-url`, `vertex-tax-breakdown`, `vertex-tax-show-rates`.
 - **Removed** the 0.1 `vertex-tax-estimate` block and its `estimate-tax` client: the cart
   drop-in's Estimate Shipping prices the cart through Vertex already. 0.1 was never

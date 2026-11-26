@@ -16,16 +16,39 @@ export function cartNeedsCheck(cart) {
 }
 
 /**
+ * Whether to ask about a cart: its saved tax is zero, or the cart drop-in's latest
+ * estimate (`estimateTaxes`, its applied taxes; null when there is none) is. On checkout
+ * the Tax line shows the estimate for a half-filled address, and the Vertex Tax app
+ * prices that estimate too, so a fallback can show there while the saved tax is not zero.
+ */
+export function cartCheckWanted(cart, estimateTaxes) {
+  if (!cart?.id || !(Number(cart?.totalQuantity) > 0)) return false;
+  if (isZero(cart?.totalTax)) return true;
+  return Array.isArray(estimateTaxes)
+    && estimateTaxes.every((tax) => !Number(tax?.amount?.value));
+}
+
+/**
+ * Whether the drop-in's Tax line text ("$0.00", "0,00 €") is zero. The notice is only
+ * shown next to a zero: next to an amount it would contradict what the shopper sees.
+ */
+export function showsZero(text) {
+  const digits = String(text ?? '').replace(/\D/g, '');
+  return digits !== '' && /^0+$/.test(digits);
+}
+
+/**
  * A short fingerprint of what decides a cart's tax: its address, lines and totals. It
  * changes when the cart does and stays the same across the drop-ins' re-renders, so the
  * status is asked again for a changed cart, and only then.
  */
-export function cartVersion(cart) {
+export function cartVersion(cart, estimateTaxes = null) {
   const text = JSON.stringify([
     cart?.addresses ?? null,
     cart?.totalQuantity ?? null,
     cart?.subtotal ?? null,
     cart?.total ?? null,
+    estimateTaxes ?? null,
   ]);
   let hash = 5381;
   for (let i = 0; i < text.length; i += 1) hash = (hash * 33 + text.charCodeAt(i)) % 4294967291;
