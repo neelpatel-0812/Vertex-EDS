@@ -13,6 +13,9 @@ export const DEFAULTS = {
   'vertex-tax-address-title': 'Check your address',
   // Used only when the Vertex Tax app sent no message of its own.
   'vertex-tax-address-notice': "We couldn't calculate tax for this address. Please check the postcode, state and city.",
+  'vertex-tax-unavailable-title': "Tax can't be calculated right now",
+  // Used only when the merchant wrote no message of their own.
+  'vertex-tax-unavailable-notice': 'You can keep shopping. Please try placing your order again in a few minutes.',
   'vertex-tax-error-title': 'Tax not updated',
   // Used only when Commerce gave no reason of its own.
   'vertex-tax-error-notice': 'The tax and total shown are for your previous details. Check the address and try again.',

@@ -98,3 +98,13 @@ test('asks again as soon as the cart changes', async () => {
   assert.equal(calls.length, 2);
   assert.equal(calls[1], `${APP_URL}?cart=abc&v=v2`);
 });
+
+test('passes on the Block fallback as its own reason', async () => {
+  const { createStatusClient } = await loadAsset('status');
+  const { fetchImpl } = fakeFetch({ fallback: true, reason: 'unavailable' });
+
+  assert.deepEqual(await createStatusClient({ url: APP_URL, fetchImpl })({ cart: 'abc' }), {
+    fallback: true,
+    reason: 'unavailable',
+  });
+});

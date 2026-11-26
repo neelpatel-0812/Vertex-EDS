@@ -73,3 +73,17 @@ test("a cart's version changes with its address or totals, not with a re-render"
   assert.notEqual(cartVersion(cart), cartVersion({ ...cart, addresses: { shipping: [{ postCode: '380001' }] } }));
   assert.match(cartVersion(cart), /^[a-z0-9]+$/);
 });
+
+// Block fallback: the cart stays usable at zero tax, and the order is refused until
+// Vertex answers again, so the notice says that rather than "to be confirmed".
+test('says tax cannot be calculated right now under the Block fallback', async () => {
+  const { noticeText } = await loadAsset('fallback');
+  const { createStrings } = await loadAsset('i18n');
+  const t = createStrings({});
+
+  assert.deepEqual(noticeText({ reason: 'unavailable', message: 'Try again soon.' }, t), {
+    title: "Tax can't be calculated right now",
+    body: 'Try again soon.',
+  });
+  assert.equal(noticeText({ reason: 'unavailable' }, t).body, t('vertex-tax-unavailable-notice'));
+});

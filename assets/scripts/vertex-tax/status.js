@@ -20,7 +20,8 @@ function readAnswer(body) {
   return {
     fallback: true,
     // "address": Vertex could not place the address, and the shopper can fix it.
-    ...(body.reason === 'address' ? { reason: 'address' } : {}),
+    // "unavailable": the Block fallback; the order waits until Vertex answers again.
+    ...(['address', 'unavailable'].includes(body.reason) ? { reason: body.reason } : {}),
     ...(typeof body.message === 'string' && body.message.trim()
       ? { message: body.message.trim() } : {}),
   };
@@ -32,7 +33,7 @@ function readAnswer(body) {
  *
  * @param {{ url: string, fetchImpl?: typeof fetch, now?: () => number }} options
  * @returns {(subject: { cart?: string, order?: string, version?: string }) =>
- *   Promise<{ fallback: boolean, reason?: 'address', message?: string }>}
+ *   Promise<{ fallback: boolean, reason?: 'address'|'unavailable', message?: string }>}
  */
 export function createStatusClient({
   url,

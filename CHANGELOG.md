@@ -25,6 +25,9 @@
 - **"Check your address" notice** when the Vertex Tax app could not place the address
   (app 0.9.4: the cart is priced at zero tax and only the order is refused). The status
   is asked again whenever the cart changes, not once per 30 seconds.
+- **"Tax can't be calculated right now" notice** for the merchant's Block fallback
+  (app 0.9.4: the cart stays usable at zero tax and only the order is refused until
+  Vertex answers again), with the merchant's message.
 - **The breakdown always adds up to the Tax line.** For a half-filled checkout address
   the cart drop-in shows an estimate (`estimateTotals`) while the cart's saved taxes are
   still the last full address's; the breakdown now follows whichever the Tax line shows,

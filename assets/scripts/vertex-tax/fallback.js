@@ -51,6 +51,13 @@ export function noticeText(status, t) {
       body: status.message || t('vertex-tax-address-notice'),
     };
   }
+  // The merchant's Block fallback: the order waits until Vertex answers again.
+  if (status?.reason === 'unavailable') {
+    return {
+      title: t('vertex-tax-unavailable-title'),
+      body: status.message || t('vertex-tax-unavailable-notice'),
+    };
+  }
   return {
     title: t('vertex-tax-fallback-title'),
     body: status?.message || t('vertex-tax-fallback-notice'),
